@@ -1,0 +1,15 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>OTP Email</title>
+</head>
+<body>
+<h2>Chào bạn,</h2>
+<p>Đây là mã OTP của bạn: <strong th:text="${otp}"></strong></p>
+<p>Hãy sử dụng mã này để xác thực tài khoản.</p>
+<br>
+<p>Trân trọng,</p>
+<p><strong th:text="${companyName}"></strong></p>
+</body>
+</html>

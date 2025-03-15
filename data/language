@@ -1,0 +1,25 @@
+INSERT INTO language (code, name) VALUES
+('en', 'English'),
+('zh', 'Chinese'),
+('hi', 'Hindi'),
+('es', 'Spanish'),
+('fr', 'French'),
+('ar', 'Arabic'),
+('bn', 'Bengali'),
+('ru', 'Russian'),
+('pt', 'Portuguese'),
+('id', 'Indonesian'),
+('ur', 'Urdu'),
+('de', 'German'),
+('ja', 'Japanese'),
+('sw', 'Swahili'),
+('mr', 'Marathi'),
+-- Ngôn ngữ của các nước thân thuộc với Việt Nam
+('vi', 'Vietnamese'),
+('th', 'Thai'),
+('lo', 'Lao'),
+('km', 'Khmer'),
+('ms', 'Malay'),
+('my', 'Burmese'),
+('ko', 'Korean');
+

@@ -1,0 +1,195 @@
+package com.example.courseapplicationproject.service;
+
+import java.io.IOException;
+import java.util.HashSet;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Set;
+
+import jakarta.mail.MessagingException;
+
+import org.springframework.amqp.rabbit.core.RabbitTemplate;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.stereotype.Service;
+import org.springframework.web.multipart.MultipartFile;
+
+import com.example.courseapplicationproject.dto.event.MessageRabbbitMQ;
+import com.example.courseapplicationproject.dto.request.*;
+import com.example.courseapplicationproject.dto.response.OtpResponse;
+import com.example.courseapplicationproject.dto.response.UserResponse;
+import com.example.courseapplicationproject.entity.Role;
+import com.example.courseapplicationproject.entity.User;
+import com.example.courseapplicationproject.exception.AppException;
+import com.example.courseapplicationproject.exception.ErrorCode;
+import com.example.courseapplicationproject.mapper.UserMapper;
+import com.example.courseapplicationproject.repository.RoleRepository;
+import com.example.courseapplicationproject.repository.UserRepository;
+import com.example.courseapplicationproject.service.interfaces.IUserService;
+import com.example.courseapplicationproject.util.OtpUtils;
+
+import lombok.AccessLevel;
+import lombok.RequiredArgsConstructor;
+import lombok.experimental.FieldDefaults;
+import lombok.experimental.NonFinal;
+import lombok.extern.slf4j.Slf4j;
+
+@Service
+@RequiredArgsConstructor
+@FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
+@Slf4j
+public class UserService implements IUserService {
+    static String suffixRegisterObject = "_object_register";
+    static String suffixRegisterOtp = "_otp_register";
+    static String suffixResetOtp = "_otp_reset";
+    static String company = "NVIDIA.GROUP_CO";
+
+    @NonFinal
+    @Value("${rabbitmq.exchange-name}")
+    String exchangeName;
+
+    @NonFinal
+    @Value("${rabbitmq.routing-key}")
+    String routingKey;
+
+    UserMapper userMapper;
+    UserRepository userRepository;
+    RedisService redisService;
+    RabbitTemplate rabbitTemplate;
+    RoleRepository roleRepository;
+    PasswordEncoder passwordEncoder;
+    CloudinaryService cloudinaryService;
+
+    @Override
+    @PreAuthorize("isAuthenticated()")
+    public UserResponse myInfo() {
+        var authentication = SecurityContextHolder.getContext().getAuthentication();
+        String email = authentication.getName();
+        User user = userRepository.findByEmail(email).orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND));
+        return userMapper.userToUserResponse(user);
+    }
+
+    @Override
+    public void sentOtpRegister(UserRequestCreation request) throws MessagingException {
+        if (userRepository.existsByEmail(request.getEmail())) throw new AppException(ErrorCode.USER_EXISTED);
+        if (!Objects.equals(request.getPassword(), request.getPasswordConfirm()))
+            throw new AppException(ErrorCode.PASSWORD_CONFIRM_WRONG);
+        redisService.save(request.getEmail() + suffixRegisterObject, request);
+        String otp = OtpUtils.generateOtp();
+        redisService.save(request.getEmail() + suffixRegisterOtp, otp);
+        MessageRabbbitMQ messageRabbbitMQ = MessageRabbbitMQ.builder()
+                .messageType(MessageRabbbitMQ.MessageType.SMS)
+                .recipient(request.getEmail())
+                .content(otp)
+                .subject(company)
+                .templateHTML("register-otp")
+                .build();
+        rabbitTemplate.convertAndSend(exchangeName, routingKey, messageRabbbitMQ, m -> {
+            m.getMessageProperties().setContentType("application/json");
+            return m;
+        });
+    }
+
+    @Override
+    public void verifyAndCreateUser(String email, String otp) {
+        if (userRepository.existsByEmail(email)) throw new AppException(ErrorCode.USER_EXISTED);
+        String storedOtp = redisService.get(email + suffixRegisterOtp, String.class);
+        if (Objects.isNull(storedOtp)) throw new AppException(ErrorCode.EXPIRED_OTP);
+        if (!storedOtp.equals(otp)) throw new AppException(ErrorCode.INVALID_OTP);
+        UserRequestCreation request = redisService.get(email + suffixRegisterObject, UserRequestCreation.class);
+        Role role = roleRepository
+                .findByRoleName(Role.RoleType.LEARNER.toString())
+                .orElseThrow(() -> new AppException(ErrorCode.ROLE_NOT_FOUND));
+        Set<Role> roles = new HashSet<>();
+        roles.add(role);
+        User user = User.builder()
+                .roles(roles)
+                .firstName(request.getFirstName())
+                .lastName(request.getLastName())
+                .email(email)
+                .password(passwordEncoder.encode(request.getPassword()))
+                .isEnabled(true)
+                .isTeacherApproved(false)
+                .build();
+        userRepository.save(user);
+    }
+
+    @Override
+    public void sentOtpReset(String email) {
+        if (!userRepository.existsByEmail(email)) throw new AppException(ErrorCode.USER_NOT_FOUND);
+        String otp = OtpUtils.generateOtp();
+        redisService.save(email + suffixResetOtp, otp);
+        MessageRabbbitMQ messageRabbbitMQ = MessageRabbbitMQ.builder()
+                .messageType(MessageRabbbitMQ.MessageType.EMAIL)
+                .recipient(email)
+                .content(otp)
+                .subject(company)
+                .templateHTML("reset-otp")
+                .build();
+        rabbitTemplate.convertAndSend(exchangeName, routingKey, messageRabbbitMQ, m -> {
+            m.getMessageProperties().setContentType("application/json");
+            return m;
+        });
+    }
+
+    @Override
+    public OtpResponse verifyOtpReset(VerifyResetPasswordRequest request) {
+        if (!userRepository.existsByEmail(request.getEmail())) throw new AppException(ErrorCode.USER_NOT_FOUND);
+        String storedOtp = redisService.get(request.getEmail() + suffixResetOtp, String.class);
+        if (Objects.isNull(storedOtp) || !storedOtp.equals(request.getOtp()))
+            return OtpResponse.builder().valid(false).build();
+        return OtpResponse.builder().valid(true).build();
+    }
+
+    @Override
+    public void resetPassword(ResetPasswordRequest request) {
+        User user = userRepository
+                .findByEmail(request.getEmail())
+                .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND));
+        if (!Objects.equals(request.getPassword(), request.getConfirmPassword()))
+            throw new AppException(ErrorCode.PASSWORD_CONFIRM_WRONG);
+        String storedOtp = redisService.get(request.getEmail() + suffixResetOtp, String.class);
+        if (Objects.isNull(storedOtp) || !storedOtp.equals(request.getOtp()))
+            throw new AppException(ErrorCode.INVALID_OTP);
+        user.setPassword(passwordEncoder.encode(request.getPassword()));
+        userRepository.save(user);
+    }
+
+    @Override
+    public void changePassword(ChangePasswordRequest request) {
+        String email = SecurityContextHolder.getContext().getAuthentication().getName();
+        User user = userRepository.findByEmail(email).orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND));
+        if (passwordEncoder.matches(request.getOldPassword(), user.getPassword()))
+            throw new AppException(ErrorCode.OLD_PASSWORD_WRONG);
+        if (Objects.equals(request.getNewPassword(), request.getConfirmNewPassword()))
+            throw new AppException(ErrorCode.PASSWORD_CONFIRM_WRONG);
+        user.setPassword(passwordEncoder.encode(request.getNewPassword()));
+        userRepository.save(user);
+    }
+
+    @Override
+    public void updateProfile(UpdateProfileRequest request) {
+        String email = SecurityContextHolder.getContext().getAuthentication().getName();
+        User user = userRepository.findByEmail(email).orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND));
+        userMapper.updateUserFromUpdateProfileRequest(request, user);
+        userRepository.save(user);
+    }
+
+    @Override
+    public String uploadAvatar(MultipartFile file) throws IOException {
+        String email = SecurityContextHolder.getContext().getAuthentication().getName();
+        User user = userRepository.findByEmail(email).orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND));
+        Map result = cloudinaryService.uploadImage(file);
+
+        String avatar = result.get("secure_url").toString();
+        String publicId = result.get("public_id").toString();
+        cloudinaryService.deleteImage(publicId);
+
+        user.setAvatar(avatar);
+        user.setPublicId(publicId);
+        userRepository.save(user);
+        return avatar;
+    }
+}

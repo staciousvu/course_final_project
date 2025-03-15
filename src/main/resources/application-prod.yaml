@@ -1,0 +1,4 @@
+jwt:
+  secret-key: prodxig6fp7gmykog7270jnxhsptboglzp38
+  refreshable-duration: 72000 # in seconds
+  valid-duration: 60 # in seconds

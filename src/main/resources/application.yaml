@@ -1,0 +1,21 @@
+jwt:
+  secret-key: norxig6fp7gmykog7270jnxhsptboglzp38
+  refreshable-duration: 72000 # in seconds
+  valid-duration: 60 # in seconds
+spring:
+  elasticsearch:
+    uris: http://localhost:9200
+  rabbitmq:
+    host: localhost
+    port: 5672
+    username: guest
+    password: guest
+  data:
+    redis:
+      host: localhost
+      port: 6379
+      password:
+rabbitmq:
+  queue-name: couseapp
+  exchange-name: courseAppExchange
+  routing-key: courseAppRoutingKey
