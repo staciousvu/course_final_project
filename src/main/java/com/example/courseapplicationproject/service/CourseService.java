@@ -41,6 +41,7 @@ public class CourseService {
     CategoryRepository categoryRepository;
     CourseElasticRepository courseElasticRepository;
     CourseElasticService courseElasticService;
+//    UserActivityRepository userActivityRepository;
 
     public void enrollCourse(Payment payment) {
         String email = SecurityContextHolder.getContext().getAuthentication().getName();

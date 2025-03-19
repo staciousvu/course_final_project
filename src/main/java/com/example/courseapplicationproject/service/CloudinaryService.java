@@ -35,11 +35,7 @@ public class CloudinaryService {
 
     public Map uploadImage(MultipartFile file) {
         Map uploadParams = ObjectUtils.asMap(
-                "resource_type", "image",
-                "folder", folderImage,
-                "use_filename", false,
-                "overwrite", false
-                );
+                "resource_type", "image", "folder", folderImage, "use_filename", false, "overwrite", false);
         Map uploadResult = null;
         try {
             uploadResult = cloudinary.uploader().upload(file.getBytes(), uploadParams);

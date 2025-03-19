@@ -40,7 +40,9 @@ public class SecurityConfig {
         "/user/sent-otp",
         "/user/create",
         "/payment/vn-pay",
-        "/payment/callback"
+        "/payment/callback",
+//            "/recommend/root",
+//            "/recommend/leafs"
     };
 
     @Bean

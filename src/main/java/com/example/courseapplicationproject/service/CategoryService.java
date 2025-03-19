@@ -41,11 +41,11 @@ public class CategoryService implements ICategoryService {
     private final CategoryElasticService categoryElasticService;
     private final CategoryElasticRepository categoryElasticRepository;
 
-    public void saveCategoryElastic(CategoryDocument categoryDocument) {
-        categoryElasticRepository.save(categoryDocument);
-    }
+//    public void saveCategoryElastic(CategoryDocument categoryDocument) {
+//        categoryElasticRepository.save(categoryDocument);
+//    }
 
-    @CacheEvict(value = "categories", allEntries = true)
+//    @CacheEvict(value = "categories", allEntries = true)
     @Override
     @Transactional
     public CategoryBasicResponse createCategory(CategoryRequest request) {
@@ -57,13 +57,13 @@ public class CategoryService implements ICategoryService {
         category.setSlug(newSlug);
 
         Category savedCategory = categoryRepository.save(category);
-        saveCategoryElastic(categoryMapper.toCategoryDocument(category));
+//        saveCategoryElastic(categoryMapper.toCategoryDocument(category));
 
         log.info("Category created successfully: {}", savedCategory.getId());
         return categoryMapper.toCategoryResponse(savedCategory);
     }
 
-    @CachePut(value = "category", key = "#result.slug")
+//    @CachePut(value = "category", key = "#result.slug")
     @Override
     @Transactional
     public CategoryBasicResponse updateCategory(Long id, CategoryRequest request) {
@@ -83,17 +83,17 @@ public class CategoryService implements ICategoryService {
         category.setDisplayOrder(request.getDisplayOrder());
 
         Category updatedCategory = categoryRepository.save(category);
-        saveCategoryElastic(categoryMapper.toCategoryDocument(category));
+//        saveCategoryElastic(categoryMapper.toCategoryDocument(category));
         log.info("Category updated successfully: {}", updatedCategory.getId());
 
         return categoryMapper.toCategoryResponse(updatedCategory);
     }
 
-    @Caching(
-            evict = {
-                @CacheEvict(value = "categories", allEntries = true),
-                @CacheEvict(value = "activeCategories", allEntries = true)
-            })
+//    @Caching(
+//            evict = {
+//                @CacheEvict(value = "categories", allEntries = true),
+//                @CacheEvict(value = "activeCategories", allEntries = true)
+//            })
     @Override
     @Transactional
     public void deleteCategory(Long id) {
@@ -104,11 +104,11 @@ public class CategoryService implements ICategoryService {
 
         category.setIsActive(false);
         categoryRepository.save(category);
-        saveCategoryElastic(categoryMapper.toCategoryDocument(category));
+//        saveCategoryElastic(categoryMapper.toCategoryDocument(category));
         log.warn("Category soft deleted: {}", id);
     }
 
-    @Cacheable(value = "category", key = "#slug")
+//    @Cacheable(value = "category", key = "#slug")
     @Override
     public CategoryDetailResponse getCategoryBySlug(String slug) {
         log.info("Fetching category with slug: {}", slug);
@@ -121,7 +121,7 @@ public class CategoryService implements ICategoryService {
         return categoryDetailResponse;
     }
 
-    @Cacheable(value = "categories")
+//    @Cacheable(value = "categories")
     @Override
     public List<CategoryBasicResponse> getAllCategories() {
         log.info("Fetching all categories");
@@ -131,7 +131,7 @@ public class CategoryService implements ICategoryService {
                 .collect(Collectors.toList());
     }
 
-    @Cacheable(value = "activeCategories")
+//    @Cacheable(value = "activeCategories")
     @Override
     public List<CategoryBasicResponse> getActiveCategories() {
         return categoryRepository.findByIsActiveTrue().stream()
@@ -155,7 +155,7 @@ public class CategoryService implements ICategoryService {
                 .collect(Collectors.toList());
     }
 
-    @CacheEvict(value = "categories", allEntries = true)
+//    @CacheEvict(value = "categories", allEntries = true)
     @Override
     @Transactional
     public void updateDisplayOrder(Long id, int displayOrder) {

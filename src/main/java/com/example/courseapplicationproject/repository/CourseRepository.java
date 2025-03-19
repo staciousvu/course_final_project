@@ -37,4 +37,25 @@ public interface CourseRepository extends JpaRepository<Course, Long> {
 
     @Query("select c from Course c join Enrollment e where e.user.id = :userId")
     Page<Course> findCoursesForUser(@Param("userId") Long userId, Pageable pageable);
+
+    @Query("""
+    SELECT c FROM Course c
+    LEFT JOIN c.enrollments e
+    LEFT JOIN c.reviews r
+    WHERE c.category.id IN :subCategoryIds
+    GROUP BY c
+    ORDER BY COUNT(DISTINCT e.id) DESC, COALESCE(AVG(r.rating), 0) DESC
+""")
+    List<Course> findTopCoursesBySubCategories(@Param("subCategoryIds") List<Long> subCategoryIds, Pageable pageable);
+
+    @Query("""
+        SELECT c FROM Course c
+        LEFT JOIN c.enrollments e
+        LEFT JOIN c.reviews r
+        WHERE c.category.id = :categoryId
+        GROUP BY c
+        ORDER BY COUNT(DISTINCT e.id) DESC, COALESCE(AVG(r.rating), 0) DESC
+    """)
+    List<Course> findTopCoursesByCategory(@Param("categoryId") Long categoryId, Pageable pageable);
+
 }

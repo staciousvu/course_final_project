@@ -68,9 +68,10 @@ public class LectureService {
                 .duration(duration)
                 .build();
     }
+
     public void deleteLecture(Long lectureId) {
-        Lecture lecture = lectureRepository.findById(lectureId)
-                .orElseThrow(() -> new AppException(ErrorCode.LECTURE_NOT_FOUND));
+        Lecture lecture =
+                lectureRepository.findById(lectureId).orElseThrow(() -> new AppException(ErrorCode.LECTURE_NOT_FOUND));
 
         lectureRepository.delete(lecture);
     }

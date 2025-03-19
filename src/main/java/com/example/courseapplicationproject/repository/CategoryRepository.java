@@ -24,4 +24,15 @@ public interface CategoryRepository extends JpaRepository<Category, Long> {
     List<Category> findAllSortedByCourseCountDESC();
 
     List<Category> findByNameContainingIgnoreCase(String keyword);
+
+    @Query("SELECT c.id FROM Category c WHERE c.parentCategory.id = :rootCategoryId")
+    List<Long> findSubCategoryIdsByRootCategory(@Param("rootCategoryId") Long rootCategoryId);
+
+    @Query("""
+        SELECT c.id FROM Category c
+        WHERE c.id NOT IN (SELECT DISTINCT sc.parentCategory.id FROM Category sc WHERE sc.parentCategory IS NOT NULL)
+        AND c.id IN :categoryIds
+    """)
+    List<Long> findLeafCategories(@Param("categoryIds") List<Long> categoryIds);
+
 }

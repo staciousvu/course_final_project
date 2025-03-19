@@ -40,6 +40,7 @@ public enum ErrorCode {
     COURSE_CANNOT_BE_DELETED(1026, "The course cannot delete", HttpStatus.BAD_REQUEST),
     SECTION_NOT_FOUND(1027, "Section not found", HttpStatus.NOT_FOUND),
     LECTURE_NOT_FOUND(1028, "Lecture not found", HttpStatus.NOT_FOUND),
+    PREFERENCE_NOT_FOUND(1029, "Preference not found", HttpStatus.NOT_FOUND),
     ;
     private int code;
     private String message;
