@@ -2,6 +2,7 @@ package com.example.courseapplicationproject.repository;
 
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -29,11 +30,11 @@ public interface CourseRepository extends JpaRepository<Course, Long> {
     Page<Course> findAll(Specification<Course> spec, Pageable pageable);
 
     @Query(
-            "SELECT c.id, COALESCE(AVG(r.rating), 0) FROM Course c LEFT JOIN c.reviews r WHERE c.id IN :courseIds GROUP BY c.id")
-    Map<Long, Double> findAverageRatingsForCourses(@Param("courseIds") List<Long> courseIds);
+            "SELECT c.id, COALESCE(AVG(cr.rating), 0) FROM Course c LEFT JOIN CourseReview cr ON c.id=cr.course.id WHERE c.id IN :courseIds GROUP BY c.id")
+    List<Object[]> findAverageRatingsForCourses(@Param("courseIds") List<Long> courseIds);
 
-    @Query("SELECT c.id, COUNT(r.id) FROM Course c LEFT JOIN c.reviews r WHERE c.id IN :courseIds GROUP BY c.id")
-    Map<Long, Integer> countRatingsForCourses(@Param("courseIds") List<Long> courseIds);
+    @Query("SELECT c.id, COUNT(cr.id) FROM Course c LEFT JOIN CourseReview cr ON c.id=cr.course.id WHERE c.id IN :courseIds GROUP BY c.id")
+    List<Object[]> countRatingsForCourses(@Param("courseIds") List<Long> courseIds);
 
     @Query("select c from Course c join Enrollment e where e.user.id = :userId")
     Page<Course> findCoursesForUser(@Param("userId") Long userId, Pageable pageable);
@@ -57,5 +58,8 @@ public interface CourseRepository extends JpaRepository<Course, Long> {
         ORDER BY COUNT(DISTINCT e.id) DESC, COALESCE(AVG(r.rating), 0) DESC
     """)
     List<Course> findTopCoursesByCategory(@Param("categoryId") Long categoryId, Pageable pageable);
+
+    @Query("select distinct(c) from Course c where c.id in :courseIds order by c.createdAt desc")
+    List<Course> findCoursesByIds(@Param("courseIds") List<Long> courseIds,Pageable pageable);
 
 }

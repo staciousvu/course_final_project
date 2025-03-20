@@ -41,7 +41,19 @@ public class CourseService {
     CategoryRepository categoryRepository;
     CourseElasticRepository courseElasticRepository;
     CourseElasticService courseElasticService;
+    ActivityService activityService;
 //    UserActivityRepository userActivityRepository;
+public Map<Long, Double> getAverageRatings(List<Long> courseIds) {
+    List<Object[]> results = courseRepository.findAverageRatingsForCourses(courseIds);
+    return results.stream()
+            .collect(Collectors.toMap(row -> (Long) row[0], row -> (Double) row[1]));
+}
+
+    public Map<Long, Integer> getCountRatings(List<Long> courseIds) {
+        List<Object[]> results = courseRepository.countRatingsForCourses(courseIds);
+        return results.stream()
+                .collect(Collectors.toMap(row -> (Long) row[0], row -> ((Number) row[1]).intValue()));
+    }
 
     public void enrollCourse(Payment payment) {
         String email = SecurityContextHolder.getContext().getAuthentication().getName();
@@ -123,8 +135,8 @@ public class CourseService {
         Page<Course> coursesPage = courseRepository.findAll(spec, pageRequest);
         List<Long> courseIds =
                 coursesPage.getContent().stream().map(Course::getId).toList();
-        Map<Long, Double> avgRatingForCourses = courseRepository.findAverageRatingsForCourses(courseIds);
-        Map<Long, Integer> countRatingForCourses = courseRepository.countRatingsForCourses(courseIds);
+        Map<Long, Double> avgRatingForCourses = getAverageRatings(courseIds);
+        Map<Long, Integer> countRatingForCourses = getCountRatings(courseIds);
         if (avgRatings != null) {
             List<Course> list = coursesPage
                     .filter(course -> {
@@ -158,8 +170,8 @@ public class CourseService {
         Page<Course> coursesPage = courseRepository.findCoursesForUser(user.getId(), pageRequest);
         List<Long> courseIds =
                 coursesPage.getContent().stream().map(Course::getId).toList();
-        Map<Long, Double> avgRatingForCourses = courseRepository.findAverageRatingsForCourses(courseIds);
-        Map<Long, Integer> countRatingForCourses = courseRepository.countRatingsForCourses(courseIds);
+        Map<Long, Double> avgRatingForCourses = getAverageRatings(courseIds);
+        Map<Long, Integer> countRatingForCourses = getCountRatings(courseIds);
 
         return getCourseResponses(coursesPage, avgRatingForCourses, countRatingForCourses);
     }
@@ -169,8 +181,8 @@ public class CourseService {
         User user = userRepository.findByEmail(email).orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND));
         List<Course> courses = courseRepository.findCourseByAuthorId(user.getId());
         List<Long> courseIds = courses.stream().map(Course::getId).toList();
-        Map<Long, Double> avgRatingForCourses = courseRepository.findAverageRatingsForCourses(courseIds);
-        Map<Long, Integer> countRatingForCourses = courseRepository.countRatingsForCourses(courseIds);
+        Map<Long, Double> avgRatingForCourses = getAverageRatings(courseIds);
+        Map<Long, Integer> countRatingForCourses = getCountRatings(courseIds);
         return courses.stream()
                 .map(course -> {
                     CourseResponse courseResponse = courseMapper.toCourseResponse(course);
@@ -292,7 +304,8 @@ public class CourseService {
         boolean isEnrolled = enrollRepository.existsByCourseIdAndUserId(courseId, user.getId());
         Course course =
                 courseRepository.findById(courseId).orElseThrow(() -> new AppException(ErrorCode.COURSE_NOT_FOUND));
-
+        if (!isEnrolled)
+            activityService.saveActivity(user,course);
         return CourseSectionLectureResponse.builder()
                 .courseId(courseId)
                 .totalSections(course.getSections().size())

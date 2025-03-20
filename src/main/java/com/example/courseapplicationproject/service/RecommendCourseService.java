@@ -1,7 +1,9 @@
 package com.example.courseapplicationproject.service;
 
 import java.util.*;
+import java.util.stream.Collectors;
 
+import com.example.courseapplicationproject.dto.response.RecommendLeafsResponse;
 import com.example.courseapplicationproject.entity.Course;
 import com.example.courseapplicationproject.entity.User;
 import com.example.courseapplicationproject.entity.UserPreferenceRoot;
@@ -33,6 +35,7 @@ public class RecommendCourseService {
     UserPreferenceRootRepository userPreferenceRootRepository;
     CategoryRepository categoryRepository;
     CourseMapper courseMapper;
+    UserActivityRepository userActivityRepository;
 
     public List<CourseResponse> getRecommendCoursesByPreferenceRoot() {
         String email = SecurityContextHolder.getContext().getAuthentication().getName();
@@ -44,7 +47,7 @@ public class RecommendCourseService {
             return Collections.emptyList();
         }
         Long rootCategoryId = userPreferenceRoot.getCategory().getId();
-        List<Long> subCategoriesIds = categoryRepository.findSubCategoryIdsByRootCategory(rootCategoryId);
+        List<Long> subCategoriesIds = categoryRepository.findAllSubCategoryIds(rootCategoryId);
 
         if (subCategoriesIds.isEmpty()) {
             return Collections.emptyList();
@@ -54,16 +57,17 @@ public class RecommendCourseService {
             return Collections.emptyList();
         }
         List<Long> courseIds = courses.stream().map(Course::getId).toList();
-        Map<Long, Double> avgRatingForCourses = courseRepository.findAverageRatingsForCourses(courseIds);
-        Map<Long, Integer> countRatingForCourses = courseRepository.countRatingsForCourses(courseIds);
+        Map<Long, Double> avgRatingForCourses = getAverageRatings(courseIds);
+        Map<Long, Integer> countRatingForCourses = getCountRatings(courseIds);
         return courses.stream().map(course -> {
             CourseResponse response = courseMapper.toCourseResponse(course);
             response.setAvgRating(Optional.ofNullable(avgRatingForCourses.get(course.getId())).orElse(0.0));
             response.setCountRating(Optional.ofNullable(countRatingForCourses.get(course.getId())).orElse(0));
+            response.setAuthorName(course.getAuthor().getFirstName() + " " + course.getAuthor().getLastName());
             return response;
         }).toList();
     }
-    public List<List<CourseResponse>> getRecommendCoursesByLeafNodesCategory() {
+    public List<RecommendLeafsResponse> getRecommendCoursesByLeafNodesCategory() {
         String email = SecurityContextHolder.getContext().getAuthentication().getName();
         User user = userRepository.findByEmail(email)
                 .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND));
@@ -80,29 +84,64 @@ public class RecommendCourseService {
         List<Long> selectedCategories = subCategoriesLeafIds.size() > 2
                 ? subCategoriesLeafIds.subList(0, 2)
                 : subCategoriesLeafIds;
-        List<List<CourseResponse>> recommendedCourses = new ArrayList<>();
+        List<RecommendLeafsResponse> recommendLeafsResponses = new ArrayList<>();
         for (Long categoryId : selectedCategories) {
+            RecommendLeafsResponse recommendLeafsResponse = new RecommendLeafsResponse();
             Pageable pageable = PageRequest.of(0, 6);
             List<Course> courses = courseRepository.findTopCoursesByCategory(categoryId, pageable);
+            recommendLeafsResponse.setCategoryName(courses.getFirst().getCategory().getName());
             if (courses.isEmpty()) continue; // Bỏ qua nếu không có khóa học
             // Lấy danh sách ID khóa học
             List<Long> courseIds = courses.stream().map(Course::getId).toList();
             // Lấy thông tin đánh giá trung bình và số lượng đánh giá
-            Map<Long, Double> avgRatingForCourses = courseRepository.findAverageRatingsForCourses(courseIds);
-            Map<Long, Integer> countRatingForCourses = courseRepository.countRatingsForCourses(courseIds);
+            Map<Long, Double> avgRatingForCourses = getAverageRatings(courseIds);
+            Map<Long, Integer> countRatingForCourses = getCountRatings(courseIds);
 
             List<CourseResponse> courseResponses = courses.stream().map(course -> {
                 CourseResponse response = courseMapper.toCourseResponse(course);
                 response.setAvgRating(Optional.ofNullable(avgRatingForCourses.get(course.getId())).orElse(0.0));
                 response.setCountRating(Optional.ofNullable(countRatingForCourses.get(course.getId())).orElse(0));
+                response.setAuthorName(course.getAuthor().getFirstName() + " " + course.getAuthor().getLastName());
                 return response;
             }).toList();
-
-            recommendedCourses.add(courseResponses);
+            recommendLeafsResponse.setCourses(courseResponses);
+            recommendLeafsResponses.add(recommendLeafsResponse);
         }
 
-        return recommendedCourses;
+        return recommendLeafsResponses;
 
+    }
+    public List<CourseResponse> getRecommendCoursesByUserActivity(){
+        String email = SecurityContextHolder.getContext().getAuthentication().getName();
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND));
+        List<Long> idsCourseUserActivity = userActivityRepository.findIdsActivityByUserId(user.getId());
+        Map<Long, Double> avgRatingForCourses = getAverageRatings(idsCourseUserActivity);
+        Map<Long, Integer> countRatingForCourses = getCountRatings(idsCourseUserActivity);
+        PageRequest pageRequest = PageRequest.of(0,6);
+        List<Course> courses = courseRepository.findCoursesByIds(idsCourseUserActivity,pageRequest);
+        return courses.stream().map(course->{
+            CourseResponse response = courseMapper.toCourseResponse(course);
+            response.setAvgRating(Optional.ofNullable(avgRatingForCourses.get(course.getId())).orElse(0.0));
+            response.setCountRating(Optional.ofNullable(countRatingForCourses.get(course.getId())).orElse(0));
+            response.setAuthorName(course.getAuthor().getFirstName() + " " + course.getAuthor().getLastName());
+            return response;
+        }).toList();
+    }
+    public List<CourseResponse> getRecommendByUserSearchHistory(){
+        return null;
+    }
+
+    public Map<Long, Double> getAverageRatings(List<Long> courseIds) {
+        List<Object[]> results = courseRepository.findAverageRatingsForCourses(courseIds);
+        return results.stream()
+                .collect(Collectors.toMap(row -> (Long) row[0], row -> (Double) row[1]));
+    }
+
+    public Map<Long, Integer> getCountRatings(List<Long> courseIds) {
+        List<Object[]> results = courseRepository.countRatingsForCourses(courseIds);
+        return results.stream()
+                .collect(Collectors.toMap(row -> (Long) row[0], row -> ((Number) row[1]).intValue()));
     }
 
 }

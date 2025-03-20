@@ -3,6 +3,7 @@ package com.example.courseapplicationproject.controller;
 import com.example.courseapplicationproject.dto.response.ApiResponse;
 import com.example.courseapplicationproject.dto.response.CourseResponse;
 import com.example.courseapplicationproject.dto.response.PermissionResponse;
+import com.example.courseapplicationproject.dto.response.RecommendLeafsResponse;
 import com.example.courseapplicationproject.service.RecommendCourseService;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
@@ -24,7 +25,11 @@ public class RecommendCourseController {
         return ApiResponse.success(recommendCourseService.getRecommendCoursesByPreferenceRoot(), "successful");
     }
     @GetMapping("/leafs")
-    public ApiResponse<List<List<CourseResponse>>> getRecommendLeafs() {
+    public ApiResponse<List<RecommendLeafsResponse>> getRecommendLeafs() {
         return ApiResponse.success(recommendCourseService.getRecommendCoursesByLeafNodesCategory(), "successful");
+    }
+    @GetMapping("/activity")
+    public ApiResponse<List<CourseResponse>> getRecommendUserActivity() {
+        return ApiResponse.success(recommendCourseService.getRecommendCoursesByUserActivity(), "successful");
     }
 }
