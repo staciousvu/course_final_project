@@ -62,4 +62,14 @@ public interface CourseRepository extends JpaRepository<Course, Long> {
     @Query("select distinct(c) from Course c where c.id in :courseIds order by c.createdAt desc")
     List<Course> findCoursesByIds(@Param("courseIds") List<Long> courseIds,Pageable pageable);
 
+    @Query("""
+    SELECT c FROM Course c
+    WHERE c.category.id IN (
+        SELECT c1.category.id FROM Course c1 WHERE c1.id IN :courseIds
+    )
+    AND c.id NOT IN :courseIds
+    """)
+    List<Course> findCoursesRelatedByCategory(@Param("courseIds") List<Long> courseIds,Pageable pageable);
+
+
 }
