@@ -41,6 +41,8 @@ public enum ErrorCode {
     SECTION_NOT_FOUND(1027, "Section not found", HttpStatus.NOT_FOUND),
     LECTURE_NOT_FOUND(1028, "Lecture not found", HttpStatus.NOT_FOUND),
     PREFERENCE_NOT_FOUND(1029, "Preference not found", HttpStatus.NOT_FOUND),
+    REVIEW_NOT_FOUND(1030, "Review not found", HttpStatus.NOT_FOUND),
+    INVALID_RATING(1031, "Invalid rating", HttpStatus.BAD_REQUEST),
     ;
     private int code;
     private String message;
