@@ -88,41 +88,52 @@ public class CartService {
                 .cartItemResponses(cartItemResponseList)
                 .build();
     }
-    public void addCourseToCart(Long courseId){
+    public void addCourseToCart(Long courseId) {
         String email = SecurityContextHolder.getContext().getAuthentication().getName();
         User user = userRepository.findByEmail(email)
                 .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND));
-        Course course =courseRepository.findById(courseId)
+
+        Course course = courseRepository.findById(courseId)
                 .orElseThrow(() -> new AppException(ErrorCode.COURSE_NOT_FOUND));
-        Optional<Cart> cart = cartRepository.findByUserId(user.getId());
-        if (cart.isEmpty()){
-            Cart newCart = new Cart();
+
+        Cart cart = cartRepository.findByUserId(user.getId()).orElseGet(() -> {
+            Cart newCart = Cart.builder()
+                    .user(user)
+                    .cartItems(new HashSet<>())
+                    .build();
+            return cartRepository.save(newCart);
+        });
+
+        boolean exists = cart.getCartItems().stream()
+                .anyMatch(item -> item.getCourse().getId().equals(courseId));
+
+        if (!exists) {
             CartItem cartItem = CartItem.builder()
+                    .cart(cart)
                     .course(course)
                     .build();
-            newCart.getCartItems().add(cartItem);
-            newCart.setUser(user);
-            cartRepository.save(newCart);
-        }else {
-            Cart existingCart = cart.get();
-            CartItem cartItem = CartItem.builder()
-                    .course(course)
-                    .build();
-            existingCart.getCartItems().add(cartItem);
-            existingCart.setUser(user);
-            cartRepository.save(existingCart);
+            cart.getCartItems().add(cartItem);
+            cartRepository.save(cart);
         }
     }
-    public void removeCourseFromCart(Long courseId){
+
+    public void removeCourseFromCart(Long courseId) {
         String email = SecurityContextHolder.getContext().getAuthentication().getName();
         User user = userRepository.findByEmail(email)
                 .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND));
-        Course course =courseRepository.findById(courseId)
+        Course course = courseRepository.findById(courseId)
                 .orElseThrow(() -> new AppException(ErrorCode.COURSE_NOT_FOUND));
-        Optional<Cart> cart = cartRepository.findByUserId(user.getId());
-        if (cart.isPresent()){
-            Cart existingCart = cart.get();
-        }
+        cartRepository.findByUserId(user.getId()).ifPresent(cart -> {
+            CartItem cartItem = cart.getCartItems().stream()
+                    .filter(item -> item.getCourse().getId().equals(courseId))
+                    .findFirst()
+                    .orElse(null);
+            if (cartItem != null) {
+                cart.getCartItems().remove(cartItem);
+                cartItemRepository.delete(cartItem);
+                cartRepository.save(cart);
+            }
+        });
     }
 
     public Map<Long, Double> getAverageRatings(List<Long> courseIds) {
