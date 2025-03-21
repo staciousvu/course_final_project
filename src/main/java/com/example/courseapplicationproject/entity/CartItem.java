@@ -5,6 +5,8 @@ import jakarta.persistence.*;
 import lombok.*;
 import lombok.experimental.FieldDefaults;
 
+import java.math.BigDecimal;
+
 @Entity
 @Table(name = "cart_item", uniqueConstraints = @UniqueConstraint(columnNames = {"cart_id", "course_id"}))
 @Getter
@@ -22,5 +24,4 @@ public class CartItem extends AbstractEntity<Long> {
     @JoinColumn(name = "course_id", nullable = false)
     Course course;
 
-    Double price;
 }

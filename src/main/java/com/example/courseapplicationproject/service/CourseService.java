@@ -42,7 +42,6 @@ public class CourseService {
     CourseElasticRepository courseElasticRepository;
     CourseElasticService courseElasticService;
     ActivityService activityService;
-//    UserActivityRepository userActivityRepository;
 public Map<Long, Double> getAverageRatings(List<Long> courseIds) {
     List<Object[]> results = courseRepository.findAverageRatingsForCourses(courseIds);
     return results.stream()

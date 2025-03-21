@@ -117,7 +117,7 @@ public class AuthenticateService implements IAuthenticateService {
                 .claim("scope", buildScope(user))
                 .issueTime(new Date())
                 .issuer("stacious-vu")
-                .expirationTime(Date.from(Instant.now().plus(25, ChronoUnit.SECONDS)))
+                .expirationTime(Date.from(Instant.now().plus(60, ChronoUnit.MINUTES)))
                 .jwtID(UUID.randomUUID().toString())
                 .claim("username", user.getEmail())
                 .build();

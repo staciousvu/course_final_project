@@ -27,6 +27,4 @@ public class CourseProgress extends AbstractEntity<Long> {
     @Column(name = "is_completed", columnDefinition = "BOOLEAN DEFAULT FALSE")
     Boolean isCompleted;
 
-    @Column(name = "completedDate")
-    LocalDateTime completedDate;
 }
