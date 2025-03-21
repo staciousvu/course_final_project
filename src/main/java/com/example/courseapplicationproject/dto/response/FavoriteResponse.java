@@ -3,7 +3,6 @@ package com.example.courseapplicationproject.dto.response;
 import lombok.*;
 import lombok.experimental.FieldDefaults;
 
-import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -13,17 +12,16 @@ import java.util.List;
 @AllArgsConstructor
 @NoArgsConstructor
 @FieldDefaults(level = AccessLevel.PRIVATE)
-public class CartResponse {
-//    BigDecimal totalAmount;
+public class FavoriteResponse {
     @Builder.Default
-    List<CartItemResponse> cartItemResponses = new ArrayList<>();
+    List<CourseFavorite> favorites = new ArrayList<>();
     @Getter
     @Setter
     @Builder
     @AllArgsConstructor
     @NoArgsConstructor
     @FieldDefaults(level = AccessLevel.PRIVATE)
-    public static class CartItemResponse{
+    public static class CourseFavorite{
         CourseResponse courseResponse;
         double totalHour;
         int totalLectures;

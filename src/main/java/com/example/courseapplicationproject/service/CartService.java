@@ -37,7 +37,7 @@ public class CartService {
         if (cart.isEmpty())
             return CartResponse.builder()
                     .cartItemResponses(new ArrayList<>())
-                    .totalAmount(BigDecimal.ZERO)
+//                    .totalAmount(BigDecimal.ZERO)
                     .build();
 
         List<CartResponse.CartItemResponse> cartItemResponseList = new ArrayList<>();
@@ -50,9 +50,9 @@ public class CartService {
         Map<Long, Double> avgRatingForCourses = getAverageRatings(courseIds);
         Map<Long, Integer> countRatingForCourses = getCountRatings(courseIds);
 
-        BigDecimal totalAmount = cartItems.stream()
-                .map(cartItem -> cartItem.getCourse().getPrice())
-                .reduce(BigDecimal.ZERO, BigDecimal::add);
+//        BigDecimal totalAmount = cartItems.stream()
+//                .map(cartItem -> cartItem.getCourse().getPrice())
+//                .reduce(BigDecimal.ZERO, BigDecimal::add);
 
         cartItems.forEach(cartItem -> {
             Course course = cartItem.getCourse();
@@ -84,7 +84,7 @@ public class CartService {
         });
 
         return CartResponse.builder()
-                .totalAmount(totalAmount)
+//                .totalAmount(totalAmount)
                 .cartItemResponses(cartItemResponseList)
                 .build();
     }
