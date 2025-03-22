@@ -1,9 +1,9 @@
 package com.example.courseapplicationproject.dto.response;
 
+import java.util.List;
+
 import lombok.*;
 import lombok.experimental.FieldDefaults;
-
-import java.util.List;
 
 @Getter
 @Setter
@@ -17,6 +17,7 @@ public class ProgressResponse {
     int totalLecturesCompleted;
     int totalLectures;
     List<LecturesCompleted> lecturesCompleted;
+
     @Getter
     @Setter
     @Builder

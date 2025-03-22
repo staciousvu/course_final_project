@@ -1,4 +1,4 @@
-package com.example.courseapplicationproject.dto.response;
+package com.example.courseapplicationproject.dto.request;
 
 import java.util.List;
 
@@ -7,11 +7,10 @@ import lombok.experimental.FieldDefaults;
 
 @Getter
 @Setter
-@Builder
 @AllArgsConstructor
 @NoArgsConstructor
+@Builder
 @FieldDefaults(level = AccessLevel.PRIVATE)
-public class RecommendKeywordResponse {
-    String keyword;
-    List<CourseResponse> courses;
+public class MaskAllAsReadNotificationRequest {
+    List<Long> idsNotificationRead;
 }

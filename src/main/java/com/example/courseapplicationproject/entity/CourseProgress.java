@@ -1,7 +1,5 @@
 package com.example.courseapplicationproject.entity;
 
-import java.time.LocalDateTime;
-
 import jakarta.persistence.*;
 
 import lombok.*;
@@ -26,5 +24,4 @@ public class CourseProgress extends AbstractEntity<Long> {
 
     @Column(name = "is_completed", columnDefinition = "BOOLEAN DEFAULT FALSE")
     Boolean isCompleted;
-
 }

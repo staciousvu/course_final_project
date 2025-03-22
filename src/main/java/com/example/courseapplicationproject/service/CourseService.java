@@ -42,16 +42,15 @@ public class CourseService {
     CourseElasticRepository courseElasticRepository;
     CourseElasticService courseElasticService;
     ActivityService activityService;
-public Map<Long, Double> getAverageRatings(List<Long> courseIds) {
-    List<Object[]> results = courseRepository.findAverageRatingsForCourses(courseIds);
-    return results.stream()
-            .collect(Collectors.toMap(row -> (Long) row[0], row -> (Double) row[1]));
-}
+
+    public Map<Long, Double> getAverageRatings(List<Long> courseIds) {
+        List<Object[]> results = courseRepository.findAverageRatingsForCourses(courseIds);
+        return results.stream().collect(Collectors.toMap(row -> (Long) row[0], row -> (Double) row[1]));
+    }
 
     public Map<Long, Integer> getCountRatings(List<Long> courseIds) {
         List<Object[]> results = courseRepository.countRatingsForCourses(courseIds);
-        return results.stream()
-                .collect(Collectors.toMap(row -> (Long) row[0], row -> ((Number) row[1]).intValue()));
+        return results.stream().collect(Collectors.toMap(row -> (Long) row[0], row -> ((Number) row[1]).intValue()));
     }
 
     public void enrollCourse(Payment payment) {
@@ -303,8 +302,7 @@ public Map<Long, Double> getAverageRatings(List<Long> courseIds) {
         boolean isEnrolled = enrollRepository.existsByCourseIdAndUserId(courseId, user.getId());
         Course course =
                 courseRepository.findById(courseId).orElseThrow(() -> new AppException(ErrorCode.COURSE_NOT_FOUND));
-        if (!isEnrolled)
-            activityService.saveActivity(user,course);
+        if (!isEnrolled) activityService.saveActivity(user, course);
         return CourseSectionLectureResponse.builder()
                 .courseId(courseId)
                 .totalSections(course.getSections().size())

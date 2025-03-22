@@ -41,8 +41,8 @@ public class SecurityConfig {
         "/user/create",
         "/payment/vn-pay",
         "/payment/callback",
-//            "/recommend/root",
-//            "/recommend/leafs"
+        //            "/recommend/root",
+        //            "/recommend/leafs"
     };
 
     @Bean

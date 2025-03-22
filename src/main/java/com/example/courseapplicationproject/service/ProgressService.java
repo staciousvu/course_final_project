@@ -1,21 +1,23 @@
 package com.example.courseapplicationproject.service;
 
+import java.util.Collections;
+import java.util.List;
+import java.util.Optional;
+
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.stereotype.Service;
+
 import com.example.courseapplicationproject.dto.response.LectureProgressResponse;
 import com.example.courseapplicationproject.dto.response.ProgressResponse;
 import com.example.courseapplicationproject.entity.*;
 import com.example.courseapplicationproject.exception.AppException;
 import com.example.courseapplicationproject.exception.ErrorCode;
 import com.example.courseapplicationproject.repository.*;
+
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.stereotype.Service;
-
-import java.util.Collections;
-import java.util.List;
-import java.util.Optional;
 
 @RequiredArgsConstructor
 @FieldDefaults(makeFinal = true, level = AccessLevel.PRIVATE)
@@ -27,13 +29,15 @@ public class ProgressService {
     UserRepository userRepository;
     LectureRepository lectureRepository;
     EnrollRepository enrollRepository;
-    public ProgressResponse getProgressForCourse(Long courseId){
+
+    public ProgressResponse getProgressForCourse(Long courseId) {
         String email = SecurityContextHolder.getContext().getAuthentication().getName();
-        User user = userRepository.findByEmail(email)
-                .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND));
-        Course course = courseRepository.findById(courseId)
-                .orElseThrow(() -> new AppException(ErrorCode.COURSE_NOT_FOUND));
-        int totalLectures = course.getSections().stream().mapToInt(section -> section.getLectures().size()).sum();
+        User user = userRepository.findByEmail(email).orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND));
+        Course course =
+                courseRepository.findById(courseId).orElseThrow(() -> new AppException(ErrorCode.COURSE_NOT_FOUND));
+        int totalLectures = course.getSections().stream()
+                .mapToInt(section -> section.getLectures().size())
+                .sum();
         if (totalLectures == 0) {
             return ProgressResponse.builder()
                     .courseName(course.getTitle())
@@ -44,17 +48,16 @@ public class ProgressService {
                     .build();
         }
         List<Long> idsLecture = course.getSections().stream()
-                .flatMap(section -> section.getLectures().stream()
-                        .map(Lecture::getId)).toList();
+                .flatMap(section -> section.getLectures().stream().map(Lecture::getId))
+                .toList();
         List<CourseProgress> listLecturesCompleted = progressRepository.findAllLectureCompleted(idsLecture);
         int totalLecturesCompleted = listLecturesCompleted.size();
         List<ProgressResponse.LecturesCompleted> lecturesCompleted = listLecturesCompleted.stream()
-                .map(courseProgress -> ProgressResponse.LecturesCompleted
-                        .builder()
+                .map(courseProgress -> ProgressResponse.LecturesCompleted.builder()
                         .lectureId(courseProgress.getLecture().getId())
                         .lectureName(courseProgress.getLecture().getTitle())
-                        .build()
-                ).toList();
+                        .build())
+                .toList();
         double percentage = (double) totalLecturesCompleted * 100 / totalLectures;
 
         return ProgressResponse.builder()
@@ -65,18 +68,18 @@ public class ProgressService {
                 .lecturesCompleted(lecturesCompleted)
                 .build();
     }
-    public LectureProgressResponse maskLectureCompleted(Long lectureId){
+
+    public LectureProgressResponse maskLectureCompleted(Long lectureId) {
         String email = SecurityContextHolder.getContext().getAuthentication().getName();
-        User user = userRepository.findByEmail(email)
-                .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND));
+        User user = userRepository.findByEmail(email).orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND));
         Long userId = user.getId();
-        Lecture lecture = lectureRepository.findByUserIdAndLectureId(user.getId(),lectureId)
+        Lecture lecture = lectureRepository.findById(lectureId)
                 .orElseThrow(() -> new AppException(ErrorCode.LECTURE_NOT_FOUND));
         Course course = lecture.getSection().getCourse();
         Long courseId = course.getId();
-        if (!enrollRepository.existsByCourseIdAndUserId(courseId,userId))
+        if (!enrollRepository.existsByCourseIdAndUserId(courseId, userId))
             throw new AppException(ErrorCode.ACCESS_DENIED);
-        Optional<CourseProgress> progress = progressRepository.findByLectureIdAndUserId(lectureId,userId);
+        Optional<CourseProgress> progress = progressRepository.findByLectureIdAndUserId(lectureId, userId);
         if (progress.isPresent()) {
             CourseProgress courseProgress = progress.get();
             return LectureProgressResponse.builder()
@@ -84,11 +87,11 @@ public class ProgressService {
                     .isCompleted(courseProgress.getIsCompleted())
                     .lectureName(courseProgress.getLecture().getTitle())
                     .build();
-        }else {
+        } else {
             CourseProgress newLectureProgress = progressRepository.save(CourseProgress.builder()
-                            .isCompleted(true)
-                            .lecture(lecture)
-                            .user(user)
+                    .isCompleted(true)
+                    .lecture(lecture)
+                    .user(user)
                     .build());
             return LectureProgressResponse.builder()
                     .lectureId(lectureId)

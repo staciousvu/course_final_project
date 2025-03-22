@@ -42,13 +42,4 @@ public class AuthenticateController {
         return ApiResponse.success(result, "Refresh successful");
     }
 
-    @GetMapping("/learn")
-    public ApiResponse<String> helloLearn() {
-        var authentication = SecurityContextHolder.getContext().getAuthentication();
-
-        return ApiResponse.success(
-                "what the fuck bro learner" + "user name:" + authentication.getName() + ",role:"
-                        + authentication.getAuthorities(),
-                "hello success");
-    }
 }

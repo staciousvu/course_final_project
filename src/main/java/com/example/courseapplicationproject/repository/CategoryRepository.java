@@ -28,22 +28,25 @@ public interface CategoryRepository extends JpaRepository<Category, Long> {
     @Query("SELECT c.id FROM Category c WHERE c.parentCategory.id = :rootCategoryId")
     List<Long> findSubCategoryIdsByRootCategory(@Param("rootCategoryId") Long rootCategoryId);
 
-    @Query("""
-        SELECT c.id FROM Category c
-        WHERE c.id NOT IN (SELECT DISTINCT sc.parentCategory.id FROM Category sc WHERE sc.parentCategory IS NOT NULL)
-        AND c.id IN :categoryIds
-    """)
+    @Query(
+            """
+		SELECT c.id FROM Category c
+		WHERE c.id NOT IN (SELECT DISTINCT sc.parentCategory.id FROM Category sc WHERE sc.parentCategory IS NOT NULL)
+		AND c.id IN :categoryIds
+	""")
     List<Long> findLeafCategories(@Param("categoryIds") List<Long> categoryIds);
 
-    @Query(value = """
-        WITH RECURSIVE category_tree AS (
-            SELECT id FROM category WHERE id = :parentId
-            UNION ALL
-            SELECT c.id FROM category c
-            INNER JOIN category_tree ct ON c.parent_id = ct.id
-        )
-        SELECT id FROM category_tree
-    """, nativeQuery = true)
+    @Query(
+            value =
+                    """
+		WITH RECURSIVE category_tree AS (
+			SELECT id FROM category WHERE id = :parentId
+			UNION ALL
+			SELECT c.id FROM category c
+			INNER JOIN category_tree ct ON c.parent_id = ct.id
+		)
+		SELECT id FROM category_tree
+	""",
+            nativeQuery = true)
     List<Long> findAllSubCategoryIds(@Param("parentId") Long parentId);
-
 }

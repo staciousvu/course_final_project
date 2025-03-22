@@ -44,6 +44,7 @@ public enum ErrorCode {
     REVIEW_NOT_FOUND(1030, "Review not found", HttpStatus.NOT_FOUND),
     INVALID_RATING(1031, "Invalid rating", HttpStatus.BAD_REQUEST),
     CART_NOT_FOUND(1032, "Cart not found", HttpStatus.NOT_FOUND),
+    NOTIFICATION_NOT_FOUND(1033, "Notification not found", HttpStatus.NOT_FOUND),
     ;
     private int code;
     private String message;
