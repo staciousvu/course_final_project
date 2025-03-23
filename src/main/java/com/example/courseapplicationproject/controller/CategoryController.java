@@ -2,6 +2,7 @@ package com.example.courseapplicationproject.controller;
 
 import java.util.List;
 
+import com.example.courseapplicationproject.entity.Category;
 import org.springframework.web.bind.annotation.*;
 
 import com.example.courseapplicationproject.dto.request.CategoryRequest;
@@ -20,8 +21,11 @@ import lombok.experimental.FieldDefaults;
 @RequiredArgsConstructor
 public class CategoryController {
     CategoryService categoryService;
-
-    @PostMapping
+    @GetMapping("/id/{categoryId}")
+    public ApiResponse<Category> getCategoryById(@PathVariable("categoryId") Long categoryId) {
+        return ApiResponse.success(categoryService.getCategoryById(categoryId),"oke");
+    }
+    @PostMapping("/create")
     public ApiResponse<CategoryBasicResponse> createCategory(@RequestBody CategoryRequest request) {
         return ApiResponse.success(categoryService.createCategory(request), "Category created successfully");
     }
@@ -35,7 +39,7 @@ public class CategoryController {
     @DeleteMapping("/{id}")
     public ApiResponse<Void> deleteCategory(@PathVariable Long id) {
         categoryService.deleteCategory(id);
-        return ApiResponse.success(null, "Category soft deleted successfully");
+        return ApiResponse.success(null, "Category deleted successfully");
     }
 
     @GetMapping("/{slug}")
@@ -69,4 +73,10 @@ public class CategoryController {
         categoryService.updateDisplayOrder(id, displayOrder);
         return ApiResponse.success(null, "Category display order updated successfully");
     }
+    @PutMapping("/{id}/toggle-active")
+    public ApiResponse<Void> toggleCategoryActive(@PathVariable Long id) {
+        categoryService.toggleCategoryActive(id);
+        return ApiResponse.success(null, "Category active status toggled successfully");
+    }
+
 }

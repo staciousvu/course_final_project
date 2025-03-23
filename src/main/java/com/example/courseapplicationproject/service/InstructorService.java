@@ -32,7 +32,7 @@ public class InstructorService implements IInstructorService {
     public void becomeInstructor() {
         String email = SecurityContextHolder.getContext().getAuthentication().getName();
         User user = userRepository.findByEmail(email).orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND));
-        if (!user.isTeacherApproved()) {
+        if (!user.getIsTeacherApproved()) {
             Role role = roleRepository
                     .findByRoleName(Role.RoleType.INSTRUCTOR.toString())
                     .orElseThrow(() -> new AppException(ErrorCode.ROLE_NOT_FOUND));

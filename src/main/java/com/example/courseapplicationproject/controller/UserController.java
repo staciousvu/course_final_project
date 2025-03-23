@@ -1,15 +1,12 @@
 package com.example.courseapplicationproject.controller;
 
+import com.example.courseapplicationproject.dto.request.*;
+import com.example.courseapplicationproject.dto.response.OtpResponse;
 import jakarta.mail.MessagingException;
 import jakarta.validation.Valid;
 
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
-import com.example.courseapplicationproject.dto.request.OtpVerifyRequest;
-import com.example.courseapplicationproject.dto.request.UserRequestCreation;
 import com.example.courseapplicationproject.dto.response.ApiResponse;
 import com.example.courseapplicationproject.dto.response.UserResponse;
 import com.example.courseapplicationproject.service.UserService;
@@ -17,6 +14,10 @@ import com.example.courseapplicationproject.service.UserService;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
+import org.springframework.web.multipart.MultipartFile;
+
+import java.io.IOException;
+import java.util.concurrent.CompletableFuture;
 
 @RestController
 @RequestMapping("/user")
@@ -25,21 +26,55 @@ import lombok.experimental.FieldDefaults;
 public class UserController {
     UserService userService;
 
-    @PostMapping("/my-info")
-    public ApiResponse<UserResponse> authenticate() {
-        return ApiResponse.success(userService.myInfo(), "Get info successful");
+    @GetMapping("/my-info")
+    public ApiResponse<UserResponse> getMyInfo() {
+        return ApiResponse.success(userService.myInfo(), "Lấy thông tin thành công");
     }
 
     @PostMapping("/sent-otp")
     public ApiResponse<Void> sentOtpRegister(@RequestBody @Valid UserRequestCreation request)
             throws MessagingException {
         userService.sentOtpRegister(request);
-        return ApiResponse.success(null, "");
+        return ApiResponse.success(null, "OTP đã được gửi");
     }
 
     @PostMapping("/create")
-    public ApiResponse<Void> createUser(@RequestBody @Valid OtpVerifyRequest request) throws MessagingException {
+    public ApiResponse<Void> createUser(@RequestBody @Valid OtpVerifyRequest request) {
         userService.verifyAndCreateUser(request.getEmail(), request.getOtp());
-        return ApiResponse.success(null, "");
+        return ApiResponse.success(null, "Tài khoản đã được tạo");
+    }
+
+    @PostMapping("/sent-otp-reset")
+    public ApiResponse<Void> sentOtpReset(@RequestParam String email) {
+        userService.sentOtpReset(email);
+        return ApiResponse.success(null, "OTP đặt lại mật khẩu đã được gửi");
+    }
+
+    @PostMapping("/verify-otp-reset")
+    public ApiResponse<OtpResponse> verifyOtpReset(@RequestBody @Valid VerifyResetPasswordRequest request) {
+        return ApiResponse.success(userService.verifyOtpReset(request), "Xác thực OTP thành công");
+    }
+
+    @PostMapping("/reset-password")
+    public ApiResponse<Void> resetPassword(@RequestBody @Valid ResetPasswordRequest request) {
+        userService.resetPassword(request);
+        return ApiResponse.success(null, "Mật khẩu đã được đặt lại");
+    }
+
+    @PostMapping("/change-password")
+    public ApiResponse<Void> changePassword(@RequestBody @Valid ChangePasswordRequest request) {
+        userService.changePassword(request);
+        return ApiResponse.success(null, "Mật khẩu đã được thay đổi");
+    }
+
+    @PutMapping("/update-profile")
+    public ApiResponse<UserResponse> updateProfile(@RequestBody @Valid UpdateProfileRequest request) {
+        return ApiResponse.success(userService.updateProfile(request), "Cập nhật hồ sơ thành công");
+    }
+
+    @PostMapping("/upload-avatar")
+    public ApiResponse<String> uploadAvatar(@RequestParam("file") MultipartFile file) throws IOException {
+        String avatarUrl = userService.uploadAvatar(file);
+        return ApiResponse.success(avatarUrl, "Ảnh đại diện đã được cập nhật");
     }
 }

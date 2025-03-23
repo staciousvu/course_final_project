@@ -1,6 +1,8 @@
 package com.example.courseapplicationproject.service;
 
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 import org.springframework.stereotype.Service;
@@ -35,27 +37,29 @@ public class CategoryService implements ICategoryService {
     private final UserRepository userRepository;
     private final CourseRepository courseRepository;
     private final CategoryElasticService categoryElasticService;
-    private final CategoryElasticRepository categoryElasticRepository;
+//    private final CategoryElasticRepository categoryElasticRepository;
 
     //    public void saveCategoryElastic(CategoryDocument categoryDocument) {
     //        categoryElasticRepository.save(categoryDocument);
     //    }
 
     //    @CacheEvict(value = "categories", allEntries = true)
+    public Category getCategoryById(Long id) {
+        log.info("get parent id"+ categoryRepository.findById(id).get().getParentCategory().getId());
+        return categoryRepository.findById(id).orElse(null);
+    }
     @Override
     @Transactional
     public CategoryBasicResponse createCategory(CategoryRequest request) {
         log.info("Creating new category: {}", request.getName());
-
         String newSlug = SlugUtils.generateSlug(request.getName());
-
+        Category parentCategory = categoryRepository.findById(request.getParentCategoryId())
+                .orElseThrow(() -> new AppException(ErrorCode.CATEGORY_NOT_FOUND));
         Category category = categoryMapper.toCategory(request);
+        category.setParentCategory(parentCategory);
         category.setSlug(newSlug);
-
         Category savedCategory = categoryRepository.save(category);
-        //        saveCategoryElastic(categoryMapper.toCategoryDocument(category));
-
-        log.info("Category created successfully: {}", savedCategory.getId());
+        log.info("parent id:"+savedCategory.getParentCategory());
         return categoryMapper.toCategoryResponse(savedCategory);
     }
 
@@ -63,16 +67,12 @@ public class CategoryService implements ICategoryService {
     @Override
     @Transactional
     public CategoryBasicResponse updateCategory(Long id, CategoryRequest request) {
-        log.info("Updating category with id: {}", id);
-
-        Category category =
-                categoryRepository.findById(id).orElseThrow(() -> new AppException(ErrorCode.CATEGORY_NOT_FOUND));
-
+        Category category = categoryRepository.findById(id)
+                        .orElseThrow(() -> new AppException(ErrorCode.CATEGORY_NOT_FOUND));
         if (!category.getName().equals(request.getName())) {
             String newSlug = SlugUtils.generateSlug(request.getName());
             category.setSlug(newSlug);
         }
-
         category.setName(request.getName());
         category.setDescription(request.getDescription());
         category.setIsActive(request.getIsActive());
@@ -81,7 +81,6 @@ public class CategoryService implements ICategoryService {
         Category updatedCategory = categoryRepository.save(category);
         //        saveCategoryElastic(categoryMapper.toCategoryDocument(category));
         log.info("Category updated successfully: {}", updatedCategory.getId());
-
         return categoryMapper.toCategoryResponse(updatedCategory);
     }
 
@@ -93,15 +92,28 @@ public class CategoryService implements ICategoryService {
     @Override
     @Transactional
     public void deleteCategory(Long id) {
-        log.warn("Deleting category with id: {}", id);
+        Category category = categoryRepository.findById(id)
+                .orElseThrow(() -> new AppException(ErrorCode.CATEGORY_NOT_FOUND));
 
-        Category category =
-                categoryRepository.findById(id).orElseThrow(() -> new AppException(ErrorCode.CATEGORY_NOT_FOUND));
+        boolean hasChildCategories = categoryRepository.existsByParentCategory(category);
+        if (hasChildCategories) {
+            throw new AppException(ErrorCode.CATEGORY_HAS_CHILDREN);
+        }
 
-        category.setIsActive(false);
+        boolean hasCourses = courseRepository.existsByCategoryId(id);
+        if (hasCourses) {
+            throw new AppException(ErrorCode.CATEGORY_HAS_COURSES);
+        }
+
+        categoryRepository.delete(category);
+    }
+    @Transactional
+    public void toggleCategoryActive(Long id) {
+        Category category = categoryRepository.findById(id)
+                .orElseThrow(() -> new AppException(ErrorCode.CATEGORY_NOT_FOUND));
+
+        category.setIsActive(!category.getIsActive());
         categoryRepository.save(category);
-        //        saveCategoryElastic(categoryMapper.toCategoryDocument(category));
-        log.warn("Category soft deleted: {}", id);
     }
 
     //    @Cacheable(value = "category", key = "#slug")
@@ -120,20 +132,46 @@ public class CategoryService implements ICategoryService {
     //    @Cacheable(value = "categories")
     @Override
     public List<CategoryBasicResponse> getAllCategories() {
-        log.info("Fetching all categories");
-
-        return categoryRepository.findAllSortedByDisplayOrder().stream()
-                .map(categoryMapper::toCategoryResponse)
+        List<Category> rootCategories = categoryRepository.findRootCategories();
+        return rootCategories.stream()
+                .map(this::buildCategoryResponse)
                 .collect(Collectors.toList());
+    }
+
+    // Recursive
+    private CategoryBasicResponse buildCategoryResponse(Category category) {
+        CategoryBasicResponse response = categoryMapper.toCategoryResponse(category);
+        response.setParentCategoryId(category.getParentCategory() != null ? category.getParentCategory().getId() : null);
+        List<CategoryBasicResponse> subCategories = category.getSubCategories().stream()
+                .map(this::buildCategoryResponse)
+                .toList();
+        response.setSubCategories(new HashSet<>(subCategories));
+        return response;
     }
 
     //    @Cacheable(value = "activeCategories")
     @Override
     public List<CategoryBasicResponse> getActiveCategories() {
-        return categoryRepository.findByIsActiveTrue().stream()
-                .map(categoryMapper::toCategoryResponse)
+        return categoryRepository.findByParentCategoryIsNullAndIsActiveTrue().stream()
+                .map(category -> {
+                    CategoryBasicResponse response = categoryMapper.toCategoryResponse(category);
+                    response.setSubCategories(getActiveSubCategories(category.getSubCategories()));
+                    return response;
+                })
                 .collect(Collectors.toList());
     }
+
+    private Set<CategoryBasicResponse> getActiveSubCategories(Set<Category> subCategories) {
+        return subCategories.stream()
+                .filter(Category::getIsActive)
+                .map(category -> {
+                    CategoryBasicResponse response = categoryMapper.toCategoryResponse(category);
+                    response.setSubCategories(getActiveSubCategories(category.getSubCategories()));
+                    return response;
+                })
+                .collect(Collectors.toSet());
+    }
+
 
     @Override
     public List<CategoryBasicResponse> searchCategories(String keyword) {

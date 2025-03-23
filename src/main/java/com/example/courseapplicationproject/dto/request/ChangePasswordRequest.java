@@ -12,12 +12,7 @@ import lombok.experimental.FieldDefaults;
 @Builder
 @FieldDefaults(level = AccessLevel.PRIVATE)
 public class ChangePasswordRequest {
-    @JsonProperty("old_password")
     String oldPassword;
-
-    @JsonProperty("new_password")
     String newPassword;
-
-    @JsonProperty("confirm_new_password")
     String confirmNewPassword;
 }

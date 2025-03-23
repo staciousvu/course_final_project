@@ -10,6 +10,5 @@ import com.example.courseapplicationproject.entity.User;
 @Mapper(componentModel = "spring")
 public interface UserMapper {
     UserResponse userToUserResponse(User user);
-    //    User userToUserRequest(UserRequestCreation userRequestCreation);
     void updateUserFromUpdateProfileRequest(UpdateProfileRequest updateProfileRequest, @MappingTarget User user);
 }

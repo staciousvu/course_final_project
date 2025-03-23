@@ -19,6 +19,7 @@ import lombok.experimental.FieldDefaults;
 @AllArgsConstructor
 @NoArgsConstructor
 @Builder
+@ToString
 @FieldDefaults(level = AccessLevel.PRIVATE)
 public class Category extends AbstractEntity<Long> {
     @Column(name = "name", nullable = false)
@@ -27,13 +28,14 @@ public class Category extends AbstractEntity<Long> {
     @Column(name = "description", length = 500)
     String description;
 
-    @ManyToOne(fetch = FetchType.LAZY)
+    @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "parent_id")
     @JsonBackReference
     Category parentCategory;
 
     @OneToMany(mappedBy = "parentCategory", fetch = FetchType.LAZY, cascade = CascadeType.ALL)
     @JsonManagedReference
+    @ToString.Exclude
     Set<Category> subCategories = new HashSet<>();
 
     @Column(name = "slug", unique = true)
@@ -47,5 +49,6 @@ public class Category extends AbstractEntity<Long> {
 
     @OneToMany(fetch = FetchType.LAZY, mappedBy = "category")
     @JsonIgnore
+    @ToString.Exclude
     Set<Course> courses = new HashSet<>();
 }

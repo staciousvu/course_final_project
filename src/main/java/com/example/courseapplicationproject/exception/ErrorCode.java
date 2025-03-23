@@ -45,6 +45,8 @@ public enum ErrorCode {
     INVALID_RATING(1031, "Invalid rating", HttpStatus.BAD_REQUEST),
     CART_NOT_FOUND(1032, "Cart not found", HttpStatus.NOT_FOUND),
     NOTIFICATION_NOT_FOUND(1033, "Notification not found", HttpStatus.NOT_FOUND),
+    CATEGORY_HAS_COURSES(1034,"Category has courses",HttpStatus.BAD_REQUEST),
+    CATEGORY_HAS_CHILDREN(1035,"Category has children",HttpStatus.BAD_REQUEST),
     ;
     private int code;
     private String message;

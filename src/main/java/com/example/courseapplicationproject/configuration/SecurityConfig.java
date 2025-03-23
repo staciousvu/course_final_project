@@ -41,6 +41,11 @@ public class SecurityConfig {
         "/user/create",
         "/payment/vn-pay",
         "/payment/callback",
+        "/user/sent-otp-reset",
+        "/user/verify-otp-reset",
+        "/user/reset-password",
+        "/categories/**",
+        "/categories/parent/**"
         //            "/recommend/root",
         //            "/recommend/leafs"
     };

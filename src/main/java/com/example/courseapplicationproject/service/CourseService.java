@@ -6,6 +6,7 @@ import java.util.Map;
 import java.util.concurrent.ExecutionException;
 import java.util.stream.Collectors;
 
+import com.example.courseapplicationproject.dto.request.CourseUpdateRequest;
 import org.springframework.data.domain.*;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -73,31 +74,79 @@ public class CourseService {
                 .toList();
         enrollRepository.saveAll(enrollments);
     }
-
-    public void createCourse(
-            CourseCreateRequest courseCreateRequest, MultipartFile thumbnail, MultipartFile previewVideo) {
+    public void createDraftCourse(String title, Long categoryId) {
         String email = SecurityContextHolder.getContext().getAuthentication().getName();
-        User user = userRepository.findByEmail(email).orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND));
-        Category category = categoryRepository
-                .findById(courseCreateRequest.getCategoryId())
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND));
+
+        Category category = categoryRepository.findById(categoryId)
                 .orElseThrow(() -> new AppException(ErrorCode.CATEGORY_NOT_FOUND));
-        Course course = courseMapper.toCourse(courseCreateRequest);
-        course.setStatus(Course.CourseStatus.DRAFT);
-        course.setAuthor(user);
-        course.setCategory(category);
-        if (!thumbnail.isEmpty()) {
-            Map objects = cloudinaryService.uploadImage(thumbnail);
-            String secureUrl = objects.get("secure_url").toString();
-            course.setThumbnail(secureUrl);
+
+        Course course = Course.builder()
+                .title(title)
+                .status(Course.CourseStatus.DRAFT)
+                .author(user)
+                .category(category)
+                .build();
+
+        courseRepository.save(course);
+    }
+
+    public void updateCourse(Long courseId, CourseUpdateRequest request) {
+        Course course = courseRepository.findById(courseId)
+                .orElseThrow(() -> new AppException(ErrorCode.COURSE_NOT_FOUND));
+
+        String email = SecurityContextHolder.getContext().getAuthentication().getName();
+        if (!course.getAuthor().getEmail().equals(email)) {
+            throw new AppException(ErrorCode.ACCESS_DENIED);
         }
-        if (!previewVideo.isEmpty()) {
-            try {
-                Map objects = cloudinaryService.uploadVideoAuto(previewVideo).get();
-                String secureUrl = objects.get("secure_url").toString();
-                course.setPreviewVideo(secureUrl);
-            } catch (InterruptedException | ExecutionException e) {
-                throw new RuntimeException("Error uploading video", e);
-            }
+
+        if (request.getCategoryId() != null) {
+            Category category = categoryRepository.findById(request.getCategoryId())
+                    .orElseThrow(() -> new AppException(ErrorCode.CATEGORY_NOT_FOUND));
+            course.setCategory(category);
+        }
+        if (request.getTitle() != null) course.setTitle(request.getTitle());
+        if (request.getSubtitle() != null) course.setSubtitle(request.getSubtitle());
+        if (request.getPrice() != null) course.setPrice(request.getPrice());
+        if (request.getDescription() != null) course.setDescription(request.getDescription());
+        if (request.getDuration() != null) course.setDuration(request.getDuration());
+        if (request.getLanguage() != null) course.setLanguage(request.getLanguage());
+        if (request.getLevel() != null)
+            course.setLevel(Course.LevelCourse.valueOf(request.getLevel()));
+
+        courseRepository.save(course);
+    }
+    public String uploadThumbnail(Long courseId, MultipartFile thumbnail) {
+        Course course = courseRepository.findById(courseId)
+                .orElseThrow(() -> new AppException(ErrorCode.COURSE_NOT_FOUND));
+
+        String email = SecurityContextHolder.getContext().getAuthentication().getName();
+        if (!course.getAuthor().getEmail().equals(email)) {
+            throw new AppException(ErrorCode.ACCESS_DENIED);
+        }
+
+        Map objects = cloudinaryService.uploadImage(thumbnail);
+        String secureUrl = objects.get("secure_url").toString();
+        course.setThumbnail(secureUrl);
+        courseRepository.save(course);
+
+        return secureUrl;
+    }
+    public void uploadPreviewVideo(Long courseId, MultipartFile previewVideo) {
+        Course course = courseRepository.findById(courseId)
+                .orElseThrow(() -> new AppException(ErrorCode.COURSE_NOT_FOUND));
+
+        String email = SecurityContextHolder.getContext().getAuthentication().getName();
+        if (!course.getAuthor().getEmail().equals(email)) {
+            throw new AppException(ErrorCode.ACCESS_DENIED);
+        }
+
+        try {
+            Map objects = cloudinaryService.uploadVideoAuto(previewVideo).get();
+            course.setPreviewVideo(objects.get("secure_url").toString());
+        } catch (InterruptedException | ExecutionException e) {
+            throw new RuntimeException("Error uploading video", e);
         }
         courseRepository.save(course);
     }
@@ -263,39 +312,6 @@ public class CourseService {
         courseRepository.delete(course);
     }
 
-    public void editCourse(
-            Long courseId,
-            CourseCreateRequest courseCreateRequest,
-            MultipartFile thumbnail,
-            MultipartFile previewVideo) {
-        String email = SecurityContextHolder.getContext().getAuthentication().getName();
-        User user = userRepository.findByEmail(email).orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND));
-        Category category = categoryRepository
-                .findById(courseCreateRequest.getCategoryId())
-                .orElseThrow(() -> new AppException(ErrorCode.CATEGORY_NOT_FOUND));
-        Course course =
-                courseRepository.findById(courseId).orElseThrow(() -> new AppException(ErrorCode.COURSE_NOT_FOUND));
-        courseMapper.updateCourse(course, courseCreateRequest);
-        course.setStatus(Course.CourseStatus.DRAFT);
-        course.setAuthor(user);
-        course.setCategory(category);
-        if (!thumbnail.isEmpty()) {
-            Map objects = cloudinaryService.uploadImage(thumbnail);
-            String secureUrl = objects.get("secure_url").toString();
-            course.setThumbnail(secureUrl);
-        }
-        if (!previewVideo.isEmpty()) {
-            try {
-                Map objects = cloudinaryService.uploadVideoAuto(previewVideo).get();
-                String secureUrl = objects.get("secure_url").toString();
-                course.setPreviewVideo(secureUrl);
-            } catch (InterruptedException | ExecutionException e) {
-                throw new RuntimeException("Error uploading video", e);
-            }
-        }
-        courseRepository.save(course);
-    }
-
     public CourseSectionLectureResponse getSectionLectureForCourse(Long courseId) {
         String email = SecurityContextHolder.getContext().getAuthentication().getName();
         User user = userRepository.findByEmail(email).orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND));
@@ -324,9 +340,9 @@ public class CourseService {
                                                 .id(lecture.getId())
                                                 .title(lecture.getTitle())
                                                 .displayOrder(lecture.getDisplayOrder())
-                                                .type(lecture.getType().name())
+                                                .type(lecture.getType() != null ? lecture.getType().name() : null)
                                                 .contentUrl(isEnrolled ? lecture.getContentUrl() : null)
-                                                .duration(lecture.getDuration())
+                                                .duration(lecture.getDuration() != null ? lecture.getDuration() : 0)
                                                 .build())
                                         .collect(Collectors.toList()))
                                 .build())

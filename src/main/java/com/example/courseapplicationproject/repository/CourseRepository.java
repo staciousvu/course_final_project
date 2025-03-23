@@ -35,8 +35,9 @@ public interface CourseRepository extends JpaRepository<Course, Long> {
             "SELECT c.id, COUNT(cr.id) FROM Course c LEFT JOIN CourseReview cr ON c.id=cr.course.id WHERE c.id IN :courseIds GROUP BY c.id")
     List<Object[]> countRatingsForCourses(@Param("courseIds") List<Long> courseIds);
 
-    @Query("select c from Course c join Enrollment e where e.user.id = :userId")
+    @Query("SELECT c FROM Course c JOIN Enrollment e ON e.course.id = c.id WHERE e.user.id = :userId")
     Page<Course> findCoursesForUser(@Param("userId") Long userId, Pageable pageable);
+
 
     @Query(
             """
@@ -72,4 +73,8 @@ public interface CourseRepository extends JpaRepository<Course, Long> {
 	AND c.id NOT IN :courseIds
 	""")
     List<Course> findCoursesRelatedByCategory(@Param("courseIds") List<Long> courseIds, Pageable pageable);
+
+    @Query("SELECT COUNT(c) > 0 FROM Course c WHERE c.category.id = :categoryId")
+    boolean existsByCategoryId(@Param("categoryId") Long categoryId);
+
 }

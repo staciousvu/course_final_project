@@ -32,18 +32,19 @@ public class CloudinaryService {
         this.userRepository = userRepository;
         this.cloudinary = new Cloudinary(cloudinaryUrl);
     }
-
     public Map uploadImage(MultipartFile file) {
         Map uploadParams = ObjectUtils.asMap(
-                "resource_type", "image", "folder", folderImage, "use_filename", false, "overwrite", false);
-        Map uploadResult = null;
-        try {
-            uploadResult = cloudinary.uploader().upload(file.getBytes(), uploadParams);
-        } catch (IOException e) {
-            throw new RuntimeException(e);
-        }
+                "resource_type", "image",
+                "folder", folderImage,
+                "use_filename", false,
+                "overwrite", false
+        );
 
-        return uploadResult;
+        try {
+            return cloudinary.uploader().upload(file.getBytes(), uploadParams);
+        } catch (IOException e) {
+            throw new RuntimeException("Lỗi khi upload ảnh!", e);
+        }
     }
 
     public void updateImage(String url) {

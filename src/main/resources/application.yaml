@@ -3,6 +3,10 @@ jwt:
   refreshable-duration: 72000 # in seconds
   valid-duration: 60 # in seconds
 spring:
+  servlet:
+    multipart:
+      max-file-size: 200MB
+      max-request-size: 200MB
   elasticsearch:
     uris: http://localhost:9200
   rabbitmq:
@@ -15,7 +19,49 @@ spring:
       host: localhost
       port: 6379
       password:
-rabbitmq:
-  queue-name: couseapp
-  exchange-name: courseAppExchange
-  routing-key: courseAppRoutingKey
+  kafka:
+    client:
+      dns:
+        lookup: use_dns_cache
+    bootstrap-servers: localhost:9092
+    consumer:
+      group-id: notification-group
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.springframework.kafka.support.serializer.JsonDeserializer
+      properties:
+        spring.json.trusted.packages: '*'
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
+#rabbitmq:
+#  queue-name: couseapp
+#  exchange-name: courseAppExchange
+#  routing-key: courseAppRoutingKey
+
+#  security:
+#    oauth2:
+#      client:
+#        registration:
+#          google:
+#            client-id: 739657011375-ht4otg0pjda8i7uu24trq1m2tb35aq4j.apps.googleusercontent.com
+#            client-secret: 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
+#            scope: email, profile
+#          github:
+#            client-id: Iv23li0TBF3bRKMVD5HK
+#            client-secret: 368baa66310bcba4a843347791f99f33d4af3e07
+#            scope: user
+#          facebook:
+#            client-id: 8952652951483708
+#            client-secret: ad38c510fd8ec33dca845bcfaf90d821
+#            redirect-uri: "{baseUrl}/login/oauth2/code/facebook"
+#            scope:
+#              - public_profile
+#              - email
+logging:
+  level:
+    org:
+      apache:
+        kafka: warn
+
+
+

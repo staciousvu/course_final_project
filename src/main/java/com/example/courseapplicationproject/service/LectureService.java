@@ -4,6 +4,7 @@ import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
 import com.example.courseapplicationproject.dto.request.LectureCreateRequest;
@@ -19,60 +20,72 @@ import com.example.courseapplicationproject.repository.SectionRepository;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
+import org.springframework.transaction.annotation.Transactional;
 
 @RequiredArgsConstructor
 @FieldDefaults(makeFinal = true, level = AccessLevel.PRIVATE)
 @Service
+@Slf4j
 public class LectureService {
     LectureRepository lectureRepository;
     SectionRepository sectionRepository;
     CloudinaryService cloudinaryService;
 
-    public LectureResponse createLecture(LectureCreateRequest lectureCreateRequest) {
+    @Transactional
+    public LectureResponse createLecture(LectureCreateRequest request) {
+        log.info("Creating lecture: {}", request.getTitle());
         Section section = sectionRepository
-                .findById(lectureCreateRequest.getSectionId())
+                .findById(request.getSectionId())
                 .orElseThrow(() -> new AppException(ErrorCode.SECTION_NOT_FOUND));
+
         Lecture lecture = Lecture.builder()
-                .title(lectureCreateRequest.getTitle())
-                .displayOrder(
-                        lectureCreateRequest.getDisplayOrder() != null ? lectureCreateRequest.getDisplayOrder() : 0)
+                .title(request.getTitle())
+                .displayOrder(request.getDisplayOrder() != null ? request.getDisplayOrder() : 0)
                 .section(section)
                 .build();
+
         lectureRepository.save(lecture);
-        return LectureResponse.builder()
-                .id(lecture.getId())
-                .title(lecture.getTitle())
-                .displayOrder(lecture.getDisplayOrder())
-                .build();
+        return mapToResponse(lecture);
     }
 
-    public LectureResponse uploadLecture(LectureUploadRequest lectureUploadRequest)
-            throws ExecutionException, InterruptedException {
-        Long lectureId = lectureUploadRequest.getLectureId();
-        Lecture lecture =
-                lectureRepository.findById(lectureId).orElseThrow(() -> new AppException(ErrorCode.LECTURE_NOT_FOUND));
-        CompletableFuture<Map> uploadFuture = cloudinaryService.uploadVideoAuto(lectureUploadRequest.getFile());
-        Map objects = uploadFuture.get();
-        Integer duration = (Integer) objects.get("duration");
-        String contentUrl = objects.get("secure_url").toString();
-        lecture.setDuration(duration);
-        lecture.setContentUrl(contentUrl);
-        lecture.setType(Lecture.LectureType.valueOf(lectureUploadRequest.getType()));
-        lectureRepository.save(lecture);
-        return LectureResponse.builder()
-                .id(lecture.getId())
-                .title(lecture.getTitle())
-                .displayOrder(lecture.getDisplayOrder())
-                .type(lecture.getType().name())
-                .contentUrl(contentUrl)
-                .duration(duration)
-                .build();
+    public CompletableFuture<LectureResponse> uploadLecture(LectureUploadRequest request) {
+        log.info("Uploading lecture video for ID: {}", request.getLectureId());
+
+        Lecture lecture = lectureRepository.findById(request.getLectureId())
+                .orElseThrow(() -> new AppException(ErrorCode.LECTURE_NOT_FOUND));
+
+        return cloudinaryService.uploadVideoAuto(request.getFile())
+                .thenApplyAsync(objects -> {
+                    Double durationDouble = (Double) objects.get("duration"); // Lấy duration dưới dạng Double
+                    Integer duration = durationDouble != null ? durationDouble.intValue() : null; // Chuyển đổi sang Integer
+
+                    String contentUrl = objects.get("secure_url").toString();
+                    lecture.setDuration(duration);
+                    lecture.setContentUrl(contentUrl);
+                    lecture.setType(Lecture.LectureType.valueOf(request.getType()));
+
+                    lectureRepository.save(lecture);
+                    return mapToResponse(lecture);
+                });
     }
 
+    @Transactional
     public void deleteLecture(Long lectureId) {
-        Lecture lecture =
-                lectureRepository.findById(lectureId).orElseThrow(() -> new AppException(ErrorCode.LECTURE_NOT_FOUND));
+        log.info("Deleting lecture with ID: {}", lectureId);
+        Lecture lecture = lectureRepository.findById(lectureId)
+                .orElseThrow(() -> new AppException(ErrorCode.LECTURE_NOT_FOUND));
 
         lectureRepository.delete(lecture);
+    }
+
+    private LectureResponse mapToResponse(Lecture lecture) {
+        return LectureResponse.builder()
+                .id(lecture.getId())
+                .title(lecture.getTitle())
+                .displayOrder(lecture.getDisplayOrder())
+                .type(lecture.getType() != null ? lecture.getType().name() : null)
+                .contentUrl(lecture.getContentUrl())
+                .duration(lecture.getDuration())
+                .build();
     }
 }

@@ -1,6 +1,7 @@
 package com.example.courseapplicationproject.service.interfaces;
 
 import java.io.IOException;
+import java.util.concurrent.CompletableFuture;
 
 import jakarta.mail.MessagingException;
 
@@ -25,7 +26,7 @@ public interface IUserService {
 
     public void changePassword(ChangePasswordRequest request);
 
-    public void updateProfile(UpdateProfileRequest request);
+    public UserResponse updateProfile(UpdateProfileRequest request);
 
     public String uploadAvatar(MultipartFile file) throws IOException;
 }

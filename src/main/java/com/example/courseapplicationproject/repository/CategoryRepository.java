@@ -1,5 +1,6 @@
 package com.example.courseapplicationproject.repository;
 
+import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 
@@ -19,6 +20,9 @@ public interface CategoryRepository extends JpaRepository<Category, Long> {
 
     @Query("select c from Category c order by c.displayOrder asc")
     List<Category> findAllSortedByDisplayOrder();
+
+    @Query("SELECT DISTINCT c FROM Category c LEFT JOIN FETCH c.subCategories")
+    List<Category> findAllWithSubCategories();
 
     @Query("select c from Category c left join c.courses courses group by c order by COUNT(courses) DESC")
     List<Category> findAllSortedByCourseCountDESC();
@@ -49,4 +53,11 @@ public interface CategoryRepository extends JpaRepository<Category, Long> {
 	""",
             nativeQuery = true)
     List<Long> findAllSubCategoryIds(@Param("parentId") Long parentId);
+
+    @Query("SELECT c FROM Category c WHERE c.parentCategory IS NULL")
+    List<Category> findRootCategories();
+
+    boolean existsByParentCategory(Category parentCategory);
+
+    List<Category> findByParentCategoryIsNullAndIsActiveTrue();
 }
