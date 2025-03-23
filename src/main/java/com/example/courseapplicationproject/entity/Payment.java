@@ -17,6 +17,7 @@ import lombok.experimental.FieldDefaults;
 @AllArgsConstructor
 @NoArgsConstructor
 @Builder
+@ToString
 @FieldDefaults(level = AccessLevel.PRIVATE)
 public class Payment extends AbstractEntity<Long> {
     public enum PaymentMethod {
@@ -26,7 +27,7 @@ public class Payment extends AbstractEntity<Long> {
         VNPAYQR
     }
 
-    @ManyToOne(fetch = FetchType.LAZY)
+    @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "user_id")
     @JsonIgnore
     User user;
@@ -52,7 +53,7 @@ public class Payment extends AbstractEntity<Long> {
 
     String paymentInformation;
 
-    @OneToMany(mappedBy = "payment", fetch = FetchType.LAZY)
+    @OneToMany(mappedBy = "payment", fetch = FetchType.EAGER, cascade = CascadeType.ALL, orphanRemoval = true)
     @JsonIgnore
     List<PaymentDetails> paymentDetails;
 }

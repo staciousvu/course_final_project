@@ -3,14 +3,15 @@ package com.example.courseapplicationproject.service;
 import java.util.*;
 import java.util.stream.Collectors;
 
+import com.example.courseapplicationproject.dto.response.RecommendCourseCategoryRoot;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 
 import com.example.courseapplicationproject.dto.response.CourseResponse;
-import com.example.courseapplicationproject.dto.response.RecommendKeywordResponse;
-import com.example.courseapplicationproject.dto.response.RecommendLeafsResponse;
+import com.example.courseapplicationproject.dto.response.RecommendCourseKeyword;
+import com.example.courseapplicationproject.dto.response.RecommendCourseCategoryLeafs;
 import com.example.courseapplicationproject.elasticsearch.service.CourseElasticService;
 import com.example.courseapplicationproject.entity.Course;
 import com.example.courseapplicationproject.entity.User;
@@ -42,42 +43,55 @@ public class RecommendCourseService {
     SearchHistoryRepository searchHistoryRepository;
     EnrollRepository enrollRepository;
 
-    public List<CourseResponse> getRecommendCoursesByPreferenceRoot() {
+    public RecommendCourseCategoryRoot getRecommendCoursesByPreferenceRoot() {
         String email = SecurityContextHolder.getContext().getAuthentication().getName();
         User user = userRepository.findByEmail(email).orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND));
         UserPreferenceRoot userPreferenceRoot =
                 userPreferenceRootRepository.findByUserId(user.getId()).orElse(null);
         if (userPreferenceRoot == null) {
-            return Collections.emptyList();
+            return RecommendCourseCategoryRoot.builder()
+                    .categoryRoot(null)
+                    .courses(Collections.emptyList())
+                    .build();
         }
         Long rootCategoryId = userPreferenceRoot.getCategory().getId();
         List<Long> subCategoriesIds = categoryRepository.findAllSubCategoryIds(rootCategoryId);
 
         if (subCategoriesIds.isEmpty()) {
-            return Collections.emptyList();
+            return RecommendCourseCategoryRoot.builder()
+                    .categoryRoot(null)
+                    .courses(Collections.emptyList())
+                    .build();
         }
         List<Course> courses = courseRepository.findTopCoursesBySubCategories(subCategoriesIds, PageRequest.of(0, 6));
         if (courses.isEmpty()) {
-            return Collections.emptyList();
+            return RecommendCourseCategoryRoot.builder()
+                    .categoryRoot(null)
+                    .courses(Collections.emptyList())
+                    .build();
         }
         List<Long> courseIds = courses.stream().map(Course::getId).toList();
         Map<Long, Double> avgRatingForCourses = getAverageRatings(courseIds);
         Map<Long, Integer> countRatingForCourses = getCountRatings(courseIds);
-        return courses.stream()
-                .map(course -> {
-                    CourseResponse response = courseMapper.toCourseResponse(course);
-                    response.setAvgRating(Optional.ofNullable(avgRatingForCourses.get(course.getId()))
-                            .orElse(0.0));
-                    response.setCountRating(Optional.ofNullable(countRatingForCourses.get(course.getId()))
-                            .orElse(0));
-                    response.setAuthorName(course.getAuthor().getFirstName() + " "
-                            + course.getAuthor().getLastName());
-                    return response;
-                })
-                .toList();
+        return RecommendCourseCategoryRoot.builder()
+                .categoryRoot(userPreferenceRoot.getCategory().getName())
+                .courses(courses.stream()
+                        .map(course -> {
+                            CourseResponse response = courseMapper.toCourseResponse(course);
+                            response.setAvgRating(Optional.ofNullable(avgRatingForCourses.get(course.getId()))
+                                    .orElse(0.0));
+                            response.setCountRating(Optional.ofNullable(countRatingForCourses.get(course.getId()))
+                                    .orElse(0));
+                            response.setAuthorName(course.getAuthor().getFirstName() + " "
+                                    + course.getAuthor().getLastName());
+                            return response;
+                        })
+                        .toList())
+                .build();
+
     }
 
-    public List<RecommendLeafsResponse> getRecommendCoursesByLeafNodesCategory() {
+    public List<RecommendCourseCategoryLeafs> getRecommendCoursesByLeafNodesCategory() {
         String email = SecurityContextHolder.getContext().getAuthentication().getName();
         User user = userRepository.findByEmail(email).orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND));
         List<UserPreferenceSub> subList = userPreferenceSubRepository.findAllByUserId(user.getId());
@@ -93,12 +107,12 @@ public class RecommendCourseService {
         // Chỉ lấy tối đa 2 category đầu tiên
         List<Long> selectedCategories =
                 subCategoriesLeafIds.size() > 2 ? subCategoriesLeafIds.subList(0, 2) : subCategoriesLeafIds;
-        List<RecommendLeafsResponse> recommendLeafsResponses = new ArrayList<>();
+        List<RecommendCourseCategoryLeafs> recommendCourseCategoryLeafsRespons = new ArrayList<>();
         for (Long categoryId : selectedCategories) {
-            RecommendLeafsResponse recommendLeafsResponse = new RecommendLeafsResponse();
+            RecommendCourseCategoryLeafs recommendCourseCategoryLeafs = new RecommendCourseCategoryLeafs();
             Pageable pageable = PageRequest.of(0, 6);
             List<Course> courses = courseRepository.findTopCoursesByCategory(categoryId, pageable);
-            recommendLeafsResponse.setCategoryName(
+            recommendCourseCategoryLeafs.setCategoryName(
                     courses.getFirst().getCategory().getName());
             if (courses.isEmpty()) continue; // Bỏ qua nếu không có khóa học
             // Lấy danh sách ID khóa học
@@ -119,11 +133,10 @@ public class RecommendCourseService {
                         return response;
                     })
                     .toList();
-            recommendLeafsResponse.setCourses(courseResponses);
-            recommendLeafsResponses.add(recommendLeafsResponse);
+            recommendCourseCategoryLeafs.setCourses(courseResponses);
+            recommendCourseCategoryLeafsRespons.add(recommendCourseCategoryLeafs);
         }
-
-        return recommendLeafsResponses;
+        return recommendCourseCategoryLeafsRespons;
     }
 
     public List<CourseResponse> getRecommendCoursesByUserActivity() {
@@ -148,18 +161,18 @@ public class RecommendCourseService {
                 .toList();
     }
 
-    public List<RecommendKeywordResponse> getRecommendByUserSearchHistory() {
+    public List<RecommendCourseKeyword> getRecommendByUserSearchHistory() {
         String email = SecurityContextHolder.getContext().getAuthentication().getName();
         User user = userRepository.findByEmail(email).orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND));
         List<String> keywordLists = searchHistoryRepository.findByUserId(user.getId());
-        List<RecommendKeywordResponse> recommendKeywordResponses = new ArrayList<>();
+        List<RecommendCourseKeyword> recommendCourseKeywordRespons = new ArrayList<>();
         if (keywordLists.isEmpty()) {
             return Collections.emptyList();
         }
         List<String> sub = (keywordLists.size() > 2) ? keywordLists.subList(0, 2) : keywordLists;
         sub.forEach(keyword -> {
-            RecommendKeywordResponse recommendKeywordResponse = new RecommendKeywordResponse();
-            recommendKeywordResponse.setKeyword(keyword);
+            RecommendCourseKeyword recommendCourseKeyword = new RecommendCourseKeyword();
+            recommendCourseKeyword.setKeyword(keyword);
             List<Long> courseIds = courseElasticService.fuzzySearch(keyword).stream()
                     .map(Long::parseLong)
                     .toList();
@@ -179,10 +192,10 @@ public class RecommendCourseService {
                         return response;
                     })
                     .toList();
-            recommendKeywordResponse.setCourses(courseResponses);
-            recommendKeywordResponses.add(recommendKeywordResponse);
+            recommendCourseKeyword.setCourses(courseResponses);
+            recommendCourseKeywordRespons.add(recommendCourseKeyword);
         });
-        return recommendKeywordResponses;
+        return recommendCourseKeywordRespons;
     }
 
     public List<CourseResponse> getRecommendCoursesByRelatedCoursesEnrolled() {
@@ -190,8 +203,9 @@ public class RecommendCourseService {
         User user = userRepository.findByEmail(email).orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND));
         PageRequest pageRequest = PageRequest.of(0, 2);
         List<Long> idsCoursesEnrolled = enrollRepository.getIdsEnrolledCourseLatestByUserId(user.getId(), pageRequest);
+        PageRequest pageRequestRelated = PageRequest.of(0, 6);
         List<Course> relatedEnrolledCourses =
-                courseRepository.findCoursesRelatedByCategory(idsCoursesEnrolled, pageRequest);
+                courseRepository.findCoursesRelatedByCategory(idsCoursesEnrolled, pageRequestRelated);
         List<Long> ids = relatedEnrolledCourses.stream().map(Course::getId).collect(Collectors.toList());
         Map<Long, Double> avgRatingForCourses = getAverageRatings(ids);
         Map<Long, Integer> countRatingForCourses = getCountRatings(ids);

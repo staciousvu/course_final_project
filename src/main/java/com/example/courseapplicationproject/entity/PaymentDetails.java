@@ -18,7 +18,7 @@ import lombok.experimental.FieldDefaults;
 @Builder
 @FieldDefaults(level = AccessLevel.PRIVATE)
 public class PaymentDetails extends AbstractEntity<Long> {
-    @ManyToOne(fetch = FetchType.LAZY)
+    @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "payment_id", nullable = false)
     @JsonIgnore
     Payment payment;

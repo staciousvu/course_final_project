@@ -11,6 +11,7 @@ import org.springframework.data.domain.*;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
 import com.example.courseapplicationproject.dto.request.CourseCreateRequest;
@@ -43,6 +44,8 @@ public class CourseService {
     CourseElasticRepository courseElasticRepository;
     CourseElasticService courseElasticService;
     ActivityService activityService;
+    CartRepository cartRepository;
+    CartItemRepository cartItemRepository;
 
     public Map<Long, Double> getAverageRatings(List<Long> courseIds) {
         List<Object[]> results = courseRepository.findAverageRatingsForCourses(courseIds);
@@ -54,9 +57,9 @@ public class CourseService {
         return results.stream().collect(Collectors.toMap(row -> (Long) row[0], row -> ((Number) row[1]).intValue()));
     }
 
+    @Transactional
     public void enrollCourse(Payment payment) {
-        String email = SecurityContextHolder.getContext().getAuthentication().getName();
-        User user = userRepository.findByEmail(email).orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND));
+        User user = payment.getUser();
         List<PaymentDetails> paymentDetails = payment.getPaymentDetails();
         paymentDetails.forEach(paymentDetail -> {
             Long courseId = paymentDetail.getCourse().getId();
@@ -73,6 +76,14 @@ public class CourseService {
                 })
                 .toList();
         enrollRepository.saveAll(enrollments);
+        Cart cart = cartRepository.findByUser(user)
+                .orElseThrow(() -> new AppException(ErrorCode.CART_NOT_FOUND));
+
+        List<Long> courseIds = paymentDetails.stream()
+                .map(paymentDetail -> paymentDetail.getCourse().getId())
+                .toList();
+
+        cartItemRepository.deleteByCartAndCourseIdIn(cart, courseIds);
     }
     public void createDraftCourse(String title, Long categoryId) {
         String email = SecurityContextHolder.getContext().getAuthentication().getName();

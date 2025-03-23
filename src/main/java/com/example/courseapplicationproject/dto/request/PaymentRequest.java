@@ -15,7 +15,6 @@ import lombok.experimental.FieldDefaults;
 @NoArgsConstructor
 @FieldDefaults(level = AccessLevel.PRIVATE)
 public class PaymentRequest {
-    @JsonProperty("email")
     String email;
 
     @JsonProperty("payment_method")

@@ -11,7 +11,9 @@ import com.example.courseapplicationproject.entity.UserSearchKeywordHistory;
 
 @Repository
 public interface SearchHistoryRepository extends JpaRepository<UserSearchKeywordHistory, Long> {
-    @Query(
-            "select distinct(u.keyword) from UserSearchKeywordHistory u where u.user.id =:userId order by u.createdAt desc")
+    @Query("SELECT u.keyword FROM UserSearchKeywordHistory u " +
+            "WHERE u.user.id = :userId " +
+            "GROUP BY u.keyword " +
+            "ORDER BY COALESCE(MIN(u.createdAt), CURRENT_TIMESTAMP) ASC")
     List<String> findByUserId(@Param("userId") Long userId);
 }

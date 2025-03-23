@@ -66,12 +66,14 @@ public interface CourseRepository extends JpaRepository<Course, Long> {
 
     @Query(
             """
-	SELECT c FROM Course c
-	WHERE c.category.id IN (
-		SELECT c1.category.id FROM Course c1 WHERE c1.id IN :courseIds
-	)
-	AND c.id NOT IN :courseIds
-	""")
+            SELECT c FROM Course c
+            WHERE c.category.id IN (
+                SELECT c1.category.id FROM Course c1 WHERE c1.id IN :courseIds
+            )
+            AND c.id NOT IN :courseIds
+            ORDER BY c.createdAt DESC
+            """
+    )
     List<Course> findCoursesRelatedByCategory(@Param("courseIds") List<Long> courseIds, Pageable pageable);
 
     @Query("SELECT COUNT(c) > 0 FROM Course c WHERE c.category.id = :categoryId")

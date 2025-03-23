@@ -3,6 +3,8 @@ package com.example.courseapplicationproject.repository;
 import java.math.BigDecimal;
 import java.util.Optional;
 
+import com.example.courseapplicationproject.entity.Course;
+import com.example.courseapplicationproject.entity.User;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -24,4 +26,6 @@ public interface CourseReviewRepository extends JpaRepository<CourseReview, Long
     Optional<CourseReview> findByCourseIdAndUserEmail(@Param("email") String email, @Param("courseId") Long courseId);
 
     Page<CourseReview> findByCourseId(Long courseId, Pageable pageable);
+
+    boolean existsByCourseAndUser(Course course, User user);
 }

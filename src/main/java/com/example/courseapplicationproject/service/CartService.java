@@ -3,6 +3,8 @@ package com.example.courseapplicationproject.service;
 import java.util.*;
 import java.util.stream.Collectors;
 
+import lombok.AccessLevel;
+import lombok.experimental.FieldDefaults;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 
@@ -17,11 +19,12 @@ import com.example.courseapplicationproject.repository.*;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
+@Service
+@FieldDefaults(makeFinal = true, level = AccessLevel.PRIVATE)
 @RequiredArgsConstructor
 @Slf4j
-@Service
 public class CartService {
-    private final LectureRepository lectureRepository;
+    LectureRepository lectureRepository;
     CartRepository cartRepository;
     CartItemRepository cartItemRepository;
     UserRepository userRepository;
@@ -36,7 +39,6 @@ public class CartService {
         if (cart.isEmpty())
             return CartResponse.builder()
                     .cartItemResponses(new ArrayList<>())
-                    //                    .totalAmount(BigDecimal.ZERO)
                     .build();
 
         List<CartResponse.CartItemResponse> cartItemResponseList = new ArrayList<>();
@@ -47,10 +49,6 @@ public class CartService {
 
         Map<Long, Double> avgRatingForCourses = getAverageRatings(courseIds);
         Map<Long, Integer> countRatingForCourses = getCountRatings(courseIds);
-
-        //        BigDecimal totalAmount = cartItems.stream()
-        //                .map(cartItem -> cartItem.getCourse().getPrice())
-        //                .reduce(BigDecimal.ZERO, BigDecimal::add);
 
         cartItems.forEach(cartItem -> {
             Course course = cartItem.getCourse();
@@ -82,7 +80,6 @@ public class CartService {
         });
 
         return CartResponse.builder()
-                //                .totalAmount(totalAmount)
                 .cartItemResponses(cartItemResponseList)
                 .build();
     }

@@ -7,11 +7,11 @@ import lombok.experimental.FieldDefaults;
 
 @Getter
 @Setter
-@Builder
 @AllArgsConstructor
 @NoArgsConstructor
+@Builder
 @FieldDefaults(level = AccessLevel.PRIVATE)
-public class RecommendKeywordResponse {
-    String keyword;
+public class RecommendCourseCategoryLeafs {
+    String categoryName;
     List<CourseResponse> courses;
 }

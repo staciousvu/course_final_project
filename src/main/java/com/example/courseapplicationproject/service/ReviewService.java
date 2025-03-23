@@ -53,6 +53,10 @@ public class ReviewService {
         User user = userRepository.findByEmail(email).orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND));
         Course course =
                 courseRepository.findById(courseId).orElseThrow(() -> new AppException(ErrorCode.COURSE_NOT_FOUND));
+        boolean hasReviewed = courseReviewRepository.existsByCourseAndUser(course, user);
+        if (hasReviewed) {
+            throw new AppException(ErrorCode.ALREADY_REVIEWED);
+        }
         CourseReview courseReview = CourseReview.builder()
                 .review(review)
                 .course(course)
