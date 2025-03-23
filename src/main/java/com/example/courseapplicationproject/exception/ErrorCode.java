@@ -47,7 +47,8 @@ public enum ErrorCode {
     NOTIFICATION_NOT_FOUND(1033, "Notification not found", HttpStatus.NOT_FOUND),
     CATEGORY_HAS_COURSES(1034,"Category has courses",HttpStatus.BAD_REQUEST),
     CATEGORY_HAS_CHILDREN(1035,"Category has children",HttpStatus.BAD_REQUEST),
-    ALREADY_REVIEWED(1035,"Already reviewed for this course",HttpStatus.BAD_REQUEST)
+    ALREADY_REVIEWED(1035,"Already reviewed for this course",HttpStatus.BAD_REQUEST),
+    DISCUSSION_NOT_FOUND(1036,"Discussion not found",HttpStatus.BAD_REQUEST)
     ;
     private int code;
     private String message;
