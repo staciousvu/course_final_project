@@ -33,6 +33,8 @@ public class SecurityConfig {
     protected String secretKey;
 
     protected final String[] publicEndpoints = {
+            "/images/**",
+            "/videos/**",
         "/auth/log-in",
         "/auth/introspect",
         "/auth/refresh",
@@ -45,7 +47,15 @@ public class SecurityConfig {
         "/user/verify-otp-reset",
         "/user/reset-password",
         "/categories/**",
-        "/categories/parent/**"
+        "/categories/parent/**",
+        "/course/search/**",
+            "/voucher/create",
+            "/voucher/active-voucher",
+            "/voucher/inactive-expired-vouchers",
+            "/voucher/active-voucher/**",
+            "/voucher/deactivate-voucher/**",
+            "/course/*/sections-lectures/no-auth",
+            "/course/course-detail/**"
         //            "/recommend/root",
         //            "/recommend/leafs"
     };
@@ -72,19 +82,19 @@ public class SecurityConfig {
         return http.build();
     }
 
-    @Bean
-    public CorsFilter corsFilter() {
-        CorsConfiguration corsConfiguration = new CorsConfiguration();
-
-        corsConfiguration.addAllowedOrigin("*");
-        corsConfiguration.addAllowedMethod("*");
-        corsConfiguration.addAllowedHeader("*");
-
-        UrlBasedCorsConfigurationSource urlBasedCorsConfigurationSource = new UrlBasedCorsConfigurationSource();
-        urlBasedCorsConfigurationSource.registerCorsConfiguration("/**", corsConfiguration);
-
-        return new CorsFilter(urlBasedCorsConfigurationSource);
-    }
+//    @Bean
+//    public CorsFilter corsFilter() {
+//        CorsConfiguration corsConfiguration = new CorsConfiguration();
+//
+//        corsConfiguration.addAllowedOrigin("*");
+//        corsConfiguration.addAllowedMethod("*");
+//        corsConfiguration.addAllowedHeader("*");
+//
+//        UrlBasedCorsConfigurationSource urlBasedCorsConfigurationSource = new UrlBasedCorsConfigurationSource();
+//        urlBasedCorsConfigurationSource.registerCorsConfiguration("/**", corsConfiguration);
+//
+//        return new CorsFilter(urlBasedCorsConfigurationSource);
+//    }
 
     @Bean
     JwtDecoder jwtDecoder() {

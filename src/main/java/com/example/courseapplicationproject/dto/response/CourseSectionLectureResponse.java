@@ -14,9 +14,11 @@ import lombok.experimental.FieldDefaults;
 @FieldDefaults(level = AccessLevel.PRIVATE)
 public class CourseSectionLectureResponse {
     Long courseId;
+    String courseName;
     int totalSections;
     int totalLectures;
-    long duration;
+    Double duration;
+    ProgressResponse progressResponse;
 
     @Builder.Default
     List<SectionResponse> sections = new ArrayList<SectionResponse>();
@@ -50,6 +52,7 @@ public class CourseSectionLectureResponse {
         String type;
         String contentUrl;
         int displayOrder;
-        int duration;
+        boolean isCompleted;
+        Double duration;
     }
 }

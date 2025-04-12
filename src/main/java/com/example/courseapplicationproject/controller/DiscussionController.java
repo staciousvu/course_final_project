@@ -2,7 +2,9 @@ package com.example.courseapplicationproject.controller;
 
 import com.example.courseapplicationproject.dto.request.DiscussionRequest;
 import com.example.courseapplicationproject.dto.response.ApiResponse;
+import com.example.courseapplicationproject.dto.response.DiscussionDTO;
 import com.example.courseapplicationproject.dto.response.DiscussionResponse;
+import com.example.courseapplicationproject.dto.response.ReplyDTO;
 import com.example.courseapplicationproject.service.DiscussionService;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
@@ -10,12 +12,27 @@ import lombok.experimental.FieldDefaults;
 import org.springframework.data.domain.Page;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.List;
+
 @RestController
 @RequestMapping("/discussions")
 @FieldDefaults(makeFinal = true, level = AccessLevel.PRIVATE)
 @RequiredArgsConstructor
 public class DiscussionController {
     DiscussionService discussionService;
+
+    @GetMapping("/{courseId}")
+    public ApiResponse<Page<DiscussionDTO>> getRecentDiscussions(
+            @PathVariable Long courseId,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size) {
+        return ApiResponse.success(discussionService.getRecentDiscussions(courseId,page,size),"OK");
+    }
+
+    @GetMapping("/{discussionId}/replies")
+    public ApiResponse<List<ReplyDTO>> getReplies(@PathVariable Long discussionId) {
+        return ApiResponse.success(discussionService.getRepliesForDiscussion(discussionId),"OK");
+    }
 
     @PostMapping
     public ApiResponse<DiscussionResponse> createDiscussion(@RequestBody DiscussionRequest discussionRequest) {

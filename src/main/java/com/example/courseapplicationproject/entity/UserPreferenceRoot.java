@@ -21,8 +21,8 @@ public class UserPreferenceRoot extends AbstractEntity<Long> {
     @JsonIgnore
     Category category;
 
-    @OneToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "user_id", unique = true, nullable = false)
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "user_id", nullable = false)
     @JsonIgnore
     User user;
 }

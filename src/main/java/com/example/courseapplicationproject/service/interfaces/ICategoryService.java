@@ -7,7 +7,7 @@ import com.example.courseapplicationproject.dto.response.CategoryBasicResponse;
 import com.example.courseapplicationproject.dto.response.CategoryDetailResponse;
 
 public interface ICategoryService {
-    CategoryBasicResponse createCategory(CategoryRequest request);
+//    CategoryBasicResponse createCategory(CategoryRequest request);
 
     CategoryBasicResponse updateCategory(Long id, CategoryRequest request);
 

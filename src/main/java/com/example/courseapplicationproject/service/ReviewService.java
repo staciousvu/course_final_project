@@ -41,6 +41,11 @@ public class ReviewService {
 
         return reviewsPage.map(this::mapToResponse);
     }
+    public Page<CourseReviewResponse> getReviews(int page, int size) {
+        Pageable pageable = PageRequest.of(page, size, Sort.by("createdAt").descending());
+        Page<CourseReview> reviewsPage = courseReviewRepository.findAll(pageable);
+        return reviewsPage.map(this::mapToResponse);
+    }
 
     public CourseReviewResponse addReviewForCourse(CourseReviewRequest courseReviewRequest) {
         Long courseId = courseReviewRequest.getCourseId();
@@ -57,6 +62,7 @@ public class ReviewService {
         if (hasReviewed) {
             throw new AppException(ErrorCode.ALREADY_REVIEWED);
         }
+        course.setCountRating(course.getCountRating() + 1);
         CourseReview courseReview = CourseReview.builder()
                 .review(review)
                 .course(course)
@@ -64,6 +70,7 @@ public class ReviewService {
                 .rating(rating)
                 .build();
         courseReviewRepository.save(courseReview);
+        courseRepository.save(course);
         return mapToResponse(courseReview);
     }
 
@@ -97,14 +104,22 @@ public class ReviewService {
 
         courseReviewRepository.delete(courseReview);
     }
+    public void deleteReviewByReviewId(Long reviewId) {
+        courseReviewRepository.deleteById(reviewId);
+    }
 
     private CourseReviewResponse mapToResponse(CourseReview courseReview) {
         return CourseReviewResponse.builder()
+                .id(courseReview.getId())
+                .courseName(courseReview.getCourse().getTitle())
                 .reviewerName(courseReview.getUser().getFirstName() + " "
                         + courseReview.getUser().getLastName())
+                .reviewerAvatar(courseReview.getUser().getAvatar())
+                .updatedAt(courseReview.getUpdatedAt())
                 .createdAt(courseReview.getCreatedAt())
                 .rating(courseReview.getRating())
                 .review(courseReview.getReview())
                 .build();
     }
+
 }

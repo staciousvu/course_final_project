@@ -1,15 +1,13 @@
 package com.example.courseapplicationproject.service;
 
 import com.example.courseapplicationproject.dto.request.DiscussionRequest;
+import com.example.courseapplicationproject.dto.response.DiscussionDTO;
 import com.example.courseapplicationproject.dto.response.DiscussionResponse;
-import com.example.courseapplicationproject.entity.Discussion;
-import com.example.courseapplicationproject.entity.Lecture;
-import com.example.courseapplicationproject.entity.User;
+import com.example.courseapplicationproject.dto.response.ReplyDTO;
+import com.example.courseapplicationproject.entity.*;
 import com.example.courseapplicationproject.exception.AppException;
 import com.example.courseapplicationproject.exception.ErrorCode;
-import com.example.courseapplicationproject.repository.DiscussionRepository;
-import com.example.courseapplicationproject.repository.LectureRepository;
-import com.example.courseapplicationproject.repository.UserRepository;
+import com.example.courseapplicationproject.repository.*;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
@@ -20,13 +18,51 @@ import org.springframework.data.domain.Sort;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 
+import java.util.List;
+import java.util.stream.Collectors;
+
 @RequiredArgsConstructor
 @FieldDefaults(makeFinal = true, level = AccessLevel.PRIVATE)
 @Service
 public class DiscussionService {
+    CourseRepository courseRepository;
     DiscussionRepository discussionRepository;
     LectureRepository lectureRepository;
     UserRepository userRepository;
+    ReplyRepository replyRepository;
+    public Page<DiscussionDTO> getRecentDiscussions(Long courseId, int page, int size) {
+        Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "createdAt"));
+        // Lấy các thảo luận theo courseId thay vì tất cả
+        return discussionRepository.findByCourseId(courseId, pageable)
+                .map(this::convertToDTO);
+    }
+    public List<ReplyDTO> getRepliesForDiscussion(Long discussionId) {
+        return replyRepository.findByDiscussionIdOrderByCreatedAtDesc(discussionId)
+                .stream()
+                .map(this::convertToReplyDTO)
+                .collect(Collectors.toList());
+    }
+    private DiscussionDTO convertToDTO(Discussion discussion) {
+        return DiscussionDTO.builder()
+                .id(discussion.getId())
+                .userId(discussion.getUser().getId())
+                .userAvatar(discussion.getUser().getAvatar())
+                .userName(discussion.getUser().getLastName()+" "+discussion.getUser().getFirstName())
+                .content(discussion.getContent())
+                .createdAt(discussion.getCreatedAt())
+                .build();
+    }
+
+    private ReplyDTO convertToReplyDTO(Reply reply) {
+        return ReplyDTO.builder()
+                .id(reply.getId())
+                .userId(reply.getUser().getId())
+                .userAvatar(reply.getUser().getAvatar())
+                .userName(reply.getUser().getLastName()+" "+reply.getUser().getFirstName())
+                .content(reply.getContent())
+                .createdAt(reply.getCreatedAt())
+                .build();
+    }
     /**
      * Lấy danh sách discussion cho một lecture cụ thể với phân trang, sắp xếp và tìm kiếm.
      *
@@ -105,9 +141,12 @@ public class DiscussionService {
         String email = SecurityContextHolder.getContext().getAuthentication().getName();
         User user = userRepository.findByEmail(email)
                 .orElseThrow(()->new AppException(ErrorCode.USER_NOT_FOUND));
+        Course course = courseRepository.findById(discussionRequest.getCourseId())
+                .orElseThrow(()->new AppException(ErrorCode.COURSE_NOT_FOUND));
         Lecture lecture = lectureRepository.findById(discussionRequest.getLectureId())
                 .orElseThrow(() -> new AppException(ErrorCode.LECTURE_NOT_FOUND));
         Discussion discussion = new Discussion();
+        discussion.setCourse(course);
         discussion.setLecture(lecture);
         discussion.setContent(discussionRequest.getContent());
         discussion.setUser(user);
@@ -123,7 +162,8 @@ public class DiscussionService {
                 .id(discussion.getId())
                 .lectureId(discussion.getLecture().getId())
                 .content(discussion.getContent())
-                .author(discussion.getUser().getFirstName()+" " +discussion.getUser().getLastName())
+                .avatar(discussion.getUser().getAvatar())
+                .username(discussion.getUser().getFirstName()+" " +discussion.getUser().getLastName())
                 .createdAt(discussion.getCreatedAt())
                 .countReplies(discussion.getReplies() != null ? discussion.getReplies().size() : 0)
                 .build();

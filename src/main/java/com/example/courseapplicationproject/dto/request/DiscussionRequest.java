@@ -10,6 +10,7 @@ import lombok.experimental.FieldDefaults;
 @Builder
 @FieldDefaults(level = AccessLevel.PRIVATE)
 public class DiscussionRequest {
+    Long courseId;
     Long lectureId;
     String content;
 }

@@ -20,6 +20,14 @@ import lombok.experimental.FieldDefaults;
 @Builder
 @FieldDefaults(level = AccessLevel.PRIVATE)
 public class Course extends AbstractEntity<Long> {
+    public enum Label{
+        BESTSELLER,
+        HIGHRATING,
+        TRENDING,
+        NEW,
+        FREE,
+        NONE
+    }
     public enum CourseStatus {
         DRAFT,
         PENDING,
@@ -33,6 +41,9 @@ public class Course extends AbstractEntity<Long> {
         EXPERT,
         ALL
     }
+    public enum IsActive{
+        ACTIVE,INACTIVE
+    }
 
     @Column(name = "title", nullable = false, length = 255)
     String title;
@@ -40,6 +51,16 @@ public class Course extends AbstractEntity<Long> {
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     CourseStatus status;
+
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
+    Label label=Label.NONE;
+
+    @Column(name = "count_enrolled")
+    Integer countEnrolled;
+
+    @Column(name = "count_rating")
+    Integer countRating;
 
     @Column(name = "subtitle", length = 500)
     String subtitle;
@@ -51,7 +72,7 @@ public class Course extends AbstractEntity<Long> {
     String description;
 
     @Column(name = "duration", nullable = false)
-    Integer duration;
+    Double duration;
 
     @Column(name = "language", nullable = false)
     String language;
@@ -59,6 +80,10 @@ public class Course extends AbstractEntity<Long> {
     @Enumerated(EnumType.STRING)
     @Column(name = "level", nullable = false)
     LevelCourse level;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "isActive")
+    IsActive isActive;
 
     @Column(name = "thumbnail")
     String thumbnail;

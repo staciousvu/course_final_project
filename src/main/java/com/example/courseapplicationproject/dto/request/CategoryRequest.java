@@ -11,8 +11,4 @@ import lombok.experimental.FieldDefaults;
 @FieldDefaults(level = AccessLevel.PRIVATE)
 public class CategoryRequest {
     String name;
-    String description;
-    Boolean isActive;
-    Integer displayOrder;
-    Long parentCategoryId;
 }

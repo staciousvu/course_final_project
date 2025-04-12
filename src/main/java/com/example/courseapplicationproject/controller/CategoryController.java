@@ -2,13 +2,13 @@ package com.example.courseapplicationproject.controller;
 
 import java.util.List;
 
+import com.example.courseapplicationproject.dto.request.CategoryCreateRequest;
+import com.example.courseapplicationproject.dto.response.*;
 import com.example.courseapplicationproject.entity.Category;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.bind.annotation.*;
 
 import com.example.courseapplicationproject.dto.request.CategoryRequest;
-import com.example.courseapplicationproject.dto.response.ApiResponse;
-import com.example.courseapplicationproject.dto.response.CategoryBasicResponse;
-import com.example.courseapplicationproject.dto.response.CategoryDetailResponse;
 import com.example.courseapplicationproject.service.CategoryService;
 
 import lombok.AccessLevel;
@@ -19,16 +19,22 @@ import lombok.experimental.FieldDefaults;
 @RequestMapping("/categories")
 @FieldDefaults(makeFinal = true, level = AccessLevel.PRIVATE)
 @RequiredArgsConstructor
+@Slf4j
 public class CategoryController {
     CategoryService categoryService;
+    @PostMapping("/add-category")
+    public ApiResponse<Void> addCategory(@RequestBody CategoryCreateRequest categoryCreateRequest) {
+        categoryService.addCategory(categoryCreateRequest.getName(), categoryCreateRequest.getParentId());
+        return ApiResponse.success(null,"OK");
+    }
     @GetMapping("/id/{categoryId}")
     public ApiResponse<Category> getCategoryById(@PathVariable("categoryId") Long categoryId) {
         return ApiResponse.success(categoryService.getCategoryById(categoryId),"oke");
     }
-    @PostMapping("/create")
-    public ApiResponse<CategoryBasicResponse> createCategory(@RequestBody CategoryRequest request) {
-        return ApiResponse.success(categoryService.createCategory(request), "Category created successfully");
-    }
+//    @PostMapping("/create")
+//    public ApiResponse<CategoryBasicResponse> createCategory(@RequestBody CategoryRequest request) {
+//        return ApiResponse.success(categoryService.createCategory(request), "Category created successfully");
+//    }
 
     @PutMapping("/{id}")
     public ApiResponse<CategoryBasicResponse> updateCategory(
@@ -78,5 +84,29 @@ public class CategoryController {
         categoryService.toggleCategoryActive(id);
         return ApiResponse.success(null, "Category active status toggled successfully");
     }
+    @GetMapping("/subcategories")
+    public ApiResponse<List<CategoryDTO>> getSubcategories(@RequestParam Long parentId) {
+        return ApiResponse.success(categoryService.getSubcategories(parentId),"OK");
+    }
+    @GetMapping("/hierarchy")
+    public ApiResponse<List<CategoryDTO>> getCategoryHierarchy(@RequestParam Long topicId) {
+        log.info(categoryService.getCategoryHierarchy(topicId).toString());
+        return ApiResponse.success(categoryService.getCategoryHierarchy(topicId),"OK");
+    }
+    @GetMapping("/root")
+    public ApiResponse<List<CategoryDTO>> getRootCategories() {
+        return ApiResponse.success(categoryService.getRootCategories(), "OK");
+    }
+    @GetMapping("/survey/root")
+    public ApiResponse<SurveyPrefRootResponse> getSurveyRootCategories() {
+        return ApiResponse.success(categoryService.getSurveyPref(), "OK");
+    }
+    @GetMapping("/survey/topic/{parentId}")
+    public ApiResponse<SurveyPrefTopicResponse> getSurveyTopicCategories(@PathVariable Long parentId) {
+        return ApiResponse.success(categoryService.surveyPrefTopicResponse(parentId), "OK");
+    }
+
+
+
 
 }

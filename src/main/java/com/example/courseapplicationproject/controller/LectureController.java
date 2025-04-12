@@ -1,6 +1,7 @@
 package com.example.courseapplicationproject.controller;
 
 import com.example.courseapplicationproject.dto.request.LectureCreateRequest;
+import com.example.courseapplicationproject.dto.request.LectureUpdateRequest;
 import com.example.courseapplicationproject.dto.request.LectureUploadRequest;
 import com.example.courseapplicationproject.dto.response.ApiResponse;
 import com.example.courseapplicationproject.dto.response.LectureResponse;
@@ -12,6 +13,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutionException;
 
 @RestController
 @RequestMapping("/lecture")
@@ -27,12 +29,19 @@ public class LectureController {
         LectureResponse response = lectureService.createLecture(request);
         return ApiResponse.success(response, "Lecture created successfully");
     }
+    @PutMapping("/edit/{lectureId}")
+    public ApiResponse<Void> updateLecture(@PathVariable Long lectureId,@RequestBody LectureUpdateRequest lectureUpdateRequest) {
+        log.info("Received request to update lecture with id: {}", lectureId);
+        lectureService.updateLecture(lectureId, lectureUpdateRequest.getTitle());
+        return ApiResponse.success(null, "Lecture updated successfully");
+    }
+
 
     @PostMapping("/upload")
-    public CompletableFuture<ApiResponse<LectureResponse>> uploadLecture(@ModelAttribute LectureUploadRequest request) {
+    public ApiResponse<Void> uploadLecture(@ModelAttribute LectureUploadRequest request) throws ExecutionException, InterruptedException {
         log.info("Received request to upload lecture video for ID: {}", request.getLectureId());
-        return lectureService.uploadLecture(request)
-                .thenApply(response -> ApiResponse.success(response, "Lecture uploaded successfully"));
+        lectureService.uploadLecture(request);
+        return ApiResponse.success(null,"OK");
     }
 
     @DeleteMapping("/{lectureId}")

@@ -14,7 +14,7 @@ public class LectureResponse {
     String title;
     String type;
     String contentUrl;
-    Integer duration;
+    Double duration;
     Integer displayOrder;
     Long sectionId;
 }

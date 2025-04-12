@@ -1,16 +1,18 @@
 package com.example.courseapplicationproject.service;
 
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
+import java.util.*;
 import java.util.stream.Collectors;
 
+import com.example.courseapplicationproject.dto.response.*;
+import com.example.courseapplicationproject.entity.AbstractEntity;
+import com.example.courseapplicationproject.entity.User;
+import com.example.courseapplicationproject.entity.UserPreferenceRoot;
+import com.example.courseapplicationproject.repository.*;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.example.courseapplicationproject.dto.request.CategoryRequest;
-import com.example.courseapplicationproject.dto.response.CategoryBasicResponse;
-import com.example.courseapplicationproject.dto.response.CategoryDetailResponse;
 import com.example.courseapplicationproject.elasticsearch.document.CategoryDocument;
 import com.example.courseapplicationproject.elasticsearch.repository.CategoryElasticRepository;
 import com.example.courseapplicationproject.elasticsearch.service.CategoryElasticService;
@@ -18,9 +20,6 @@ import com.example.courseapplicationproject.entity.Category;
 import com.example.courseapplicationproject.exception.AppException;
 import com.example.courseapplicationproject.exception.ErrorCode;
 import com.example.courseapplicationproject.mapper.CategoryMapper;
-import com.example.courseapplicationproject.repository.CategoryRepository;
-import com.example.courseapplicationproject.repository.CourseRepository;
-import com.example.courseapplicationproject.repository.UserRepository;
 import com.example.courseapplicationproject.service.interfaces.ICategoryService;
 import com.example.courseapplicationproject.util.SlugUtils;
 
@@ -37,31 +36,76 @@ public class CategoryService implements ICategoryService {
     private final UserRepository userRepository;
     private final CourseRepository courseRepository;
     private final CategoryElasticService categoryElasticService;
+    private final UserPreferenceRootRepository userPreferenceRootRepository;
+    private final UserPreferenceSubRepository userPreferenceSubRepository;
 //    private final CategoryElasticRepository categoryElasticRepository;
 
     //    public void saveCategoryElastic(CategoryDocument categoryDocument) {
     //        categoryElasticRepository.save(categoryDocument);
     //    }
 
+
     //    @CacheEvict(value = "categories", allEntries = true)
     public Category getCategoryById(Long id) {
         log.info("get parent id"+ categoryRepository.findById(id).get().getParentCategory().getId());
         return categoryRepository.findById(id).orElse(null);
     }
-    @Override
-    @Transactional
-    public CategoryBasicResponse createCategory(CategoryRequest request) {
-        log.info("Creating new category: {}", request.getName());
-        String newSlug = SlugUtils.generateSlug(request.getName());
-        Category parentCategory = categoryRepository.findById(request.getParentCategoryId())
-                .orElseThrow(() -> new AppException(ErrorCode.CATEGORY_NOT_FOUND));
-        Category category = categoryMapper.toCategory(request);
-        category.setParentCategory(parentCategory);
-        category.setSlug(newSlug);
-        Category savedCategory = categoryRepository.save(category);
-        log.info("parent id:"+savedCategory.getParentCategory());
-        return categoryMapper.toCategoryResponse(savedCategory);
+    public void addCategory(String categoryName, Long parentId) {
+        Category parentCategory = null;
+        if (parentId != null) {
+            parentCategory = categoryRepository.findById(parentId)
+                    .orElseThrow(() -> new AppException(ErrorCode.CATEGORY_NOT_FOUND));
+        }
+
+        String newSlug = SlugUtils.generateSlug(categoryName);
+
+        Category category = Category.builder()
+                .name(categoryName)
+                .parentCategory(parentCategory)
+                .description("")
+                .displayOrder(0)
+                .isActive(true)
+                .slug(newSlug)
+                .build();
+
+        categoryRepository.save(category);
     }
+    public SurveyPrefTopicResponse surveyPrefTopicResponse(Long parentId){
+        String email= SecurityContextHolder.getContext().getAuthentication().getName();
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND));
+        List<Long> prefChoiceTopicIds = userPreferenceSubRepository.findAllByUserId(user.getId())
+                .stream().map(item->item.getCategory().getId()).toList();
+        List<Category> categories = categoryRepository.findAllTopicCategoryIds(parentId);
+        List<CategoryDTO> categoryDTOS = categories.stream()
+                .map(category -> CategoryDTO.builder()
+                        .id(category.getId())
+                        .name(category.getName())
+                        .slug(category.getSlug())
+                        .isActive(category.getIsActive())
+                        .displayOrder(category.getDisplayOrder())
+                        .build())
+                .toList();
+        return SurveyPrefTopicResponse.builder()
+                .prefChoiceTopicIds(prefChoiceTopicIds)
+                .categories(categoryDTOS)
+                .build();
+    }
+
+//    @Override
+//    @Transactional
+//    public CategoryBasicResponse createCategory(CategoryRequest request) {
+//        log.info("Creating new category: {}", request.getName());
+//        String newSlug = SlugUtils.generateSlug(request.getName());
+//        Category parentCategory = categoryRepository.findById(request.getParentCategoryId())
+//                .orElseThrow(() -> new AppException(ErrorCode.CATEGORY_NOT_FOUND));
+//        Category category = categoryMapper.toCategory(request);
+//        category.setParentCategory(parentCategory);
+//        category.setSlug(newSlug);
+//        Category savedCategory = categoryRepository.save(category);
+//        log.info("parent id:"+savedCategory.getParentCategory());
+//        return categoryMapper.toCategoryResponse(savedCategory);
+//    }
 
     //    @CachePut(value = "category", key = "#result.slug")
     @Override
@@ -69,15 +113,13 @@ public class CategoryService implements ICategoryService {
     public CategoryBasicResponse updateCategory(Long id, CategoryRequest request) {
         Category category = categoryRepository.findById(id)
                         .orElseThrow(() -> new AppException(ErrorCode.CATEGORY_NOT_FOUND));
-        if (!category.getName().equals(request.getName())) {
+        if (request.getName() != null && (!category.getName().equals(request.getName()))) {
             String newSlug = SlugUtils.generateSlug(request.getName());
             category.setSlug(newSlug);
         }
-        category.setName(request.getName());
-        category.setDescription(request.getDescription());
-        category.setIsActive(request.getIsActive());
-        category.setDisplayOrder(request.getDisplayOrder());
-
+        if (request.getName() != null) {
+            category.setName(request.getName());
+        }
         Category updatedCategory = categoryRepository.save(category);
         //        saveCategoryElastic(categoryMapper.toCategoryDocument(category));
         log.info("Category updated successfully: {}", updatedCategory.getId());
@@ -198,4 +240,64 @@ public class CategoryService implements ICategoryService {
         category.setDisplayOrder(displayOrder);
         categoryRepository.save(category);
     }
+    public List<CategoryDTO> getSubcategories(Long parentId) {
+        List<Category> subcategories = categoryRepository.findByParentCategoryId(parentId);
+        return subcategories.stream()
+                .map(category -> CategoryDTO.builder()
+                        .id(category.getId())
+                        .name(category.getName())
+                        .slug(category.getSlug())
+                        .isActive(category.getIsActive())
+                        .displayOrder(category.getDisplayOrder())
+                        .build())
+                .collect(Collectors.toList());
+    }
+    public List<CategoryDTO> getCategoryHierarchy(Long topicId) {
+        List<CategoryDTO> hierarchy = new ArrayList<>();
+        Category category = categoryRepository.findById(topicId)
+                .orElseThrow(() -> new AppException(ErrorCode.CATEGORY_NOT_FOUND));
+
+        while (category != null) {
+            hierarchy.add(0, new CategoryDTO(category.getId(), category.getName(), category.getSlug(),
+                    category.getIsActive(), category.getDisplayOrder()));
+            category = category.getParentCategory();
+        }
+        return hierarchy;
+    }
+    public List<CategoryDTO> getRootCategories(){
+        List<Category> rootCategories = categoryRepository.findRootCategories();
+        return rootCategories.stream()
+                .map(category -> CategoryDTO.builder()
+                        .id(category.getId())
+                        .name(category.getName())
+                        .slug(category.getSlug())
+                        .isActive(category.getIsActive())
+                        .displayOrder(category.getDisplayOrder())
+                        .build())
+                .collect(Collectors.toList());
+    }
+    public SurveyPrefRootResponse getSurveyPref(){
+        String email= SecurityContextHolder.getContext().getAuthentication().getName();
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND));
+        Long prefRootId;
+        Optional<UserPreferenceRoot> userPreferenceRoot= userPreferenceRootRepository.findByUserId(user.getId());
+        prefRootId = userPreferenceRoot.map(pr->pr.getCategory().getId()).orElse(null);
+        List<Category> rootCategories = categoryRepository.findRootCategories();
+        List<CategoryDTO> categoryDTOS = rootCategories.stream()
+                .map(category -> CategoryDTO.builder()
+                        .id(category.getId())
+                        .name(category.getName())
+                        .slug(category.getSlug())
+                        .isActive(category.getIsActive())
+                        .displayOrder(category.getDisplayOrder())
+                        .build())
+                .toList();
+        return SurveyPrefRootResponse.builder()
+                .prefRootId(prefRootId)
+                .categories(categoryDTOS)
+                .build();
+    }
+
+
 }

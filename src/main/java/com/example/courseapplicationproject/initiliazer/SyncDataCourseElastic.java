@@ -34,7 +34,7 @@ public class SyncDataCourseElastic {
                         .build()
         ).toList();
         courseElasticRepository.saveAll(courseDocuments);
-        log.info("Sync completed!");
+        log.info("Sync completed!,total:"+courses.size());
     }
     @EventListener(ContextClosedEvent.class)
     public void cleanup() {

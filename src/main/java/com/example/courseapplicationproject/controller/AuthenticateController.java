@@ -2,6 +2,7 @@ package com.example.courseapplicationproject.controller;
 
 import java.text.ParseException;
 
+import com.example.courseapplicationproject.dto.request.LogoutRequest;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 
@@ -40,6 +41,13 @@ public class AuthenticateController {
             throws ParseException, JOSEException {
         var result = authenticateService.refreshToken(request);
         return ApiResponse.success(result, "Refresh successful");
+    }
+    @PostMapping("/logout")
+    public ApiResponse<Void> logout(@RequestBody LogoutRequest request)
+            throws ParseException, JOSEException {
+
+        authenticateService.logout(request);
+        return ApiResponse.success(null, "Log out successful");
     }
 
 }

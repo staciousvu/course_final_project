@@ -30,6 +30,7 @@ public class CartService {
     UserRepository userRepository;
     CourseRepository courseRepository;
     CourseMapper courseMapper;
+    VoucherService voucherService;
 
     public CartResponse getCart4User() {
         String email = SecurityContextHolder.getContext().getAuthentication().getName();
@@ -58,7 +59,9 @@ public class CartService {
             courseResponse.setStatus(course.getStatus().name());
             courseResponse.setCountRating(countRatingForCourses.getOrDefault(course.getId(), 0));
             courseResponse.setAvgRating(avgRatingForCourses.getOrDefault(course.getId(), 0.0));
-
+            courseResponse.setDiscount_price(voucherService.calculateDiscountedPrice(course.getPrice()));
+            courseResponse.setAuthorAvatar(course.getAuthor().getAvatar());
+            courseResponse.setPreviewVideo(course.getPreviewVideo());
             User author = course.getAuthor();
             courseResponse.setAuthorName(author.getLastName() + " " + author.getFirstName());
 

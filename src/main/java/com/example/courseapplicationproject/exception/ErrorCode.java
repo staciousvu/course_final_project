@@ -48,7 +48,11 @@ public enum ErrorCode {
     CATEGORY_HAS_COURSES(1034,"Category has courses",HttpStatus.BAD_REQUEST),
     CATEGORY_HAS_CHILDREN(1035,"Category has children",HttpStatus.BAD_REQUEST),
     ALREADY_REVIEWED(1035,"Already reviewed for this course",HttpStatus.BAD_REQUEST),
-    DISCUSSION_NOT_FOUND(1036,"Discussion not found",HttpStatus.BAD_REQUEST)
+    DISCUSSION_NOT_FOUND(1036,"Discussion not found",HttpStatus.BAD_REQUEST),
+    VOUCHER_EXISTED(1037,"Voucher already existed", HttpStatus.CONFLICT),
+    VOUCHER_NOT_FOUND(1038 ,"Voucher not found", HttpStatus.NOT_FOUND),
+    CAN_NOT_ACTIVATE(1039,"Voucher can not activate",HttpStatus.BAD_REQUEST),
+    TARGET_NOT_FOUND(1040,"Target not found",HttpStatus.NOT_FOUND)
     ;
     private int code;
     private String message;

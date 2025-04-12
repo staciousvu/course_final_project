@@ -54,6 +54,9 @@ public class User extends AbstractEntity<Long> {
     @Column(name = "is_enabled", nullable = false)
     Boolean isEnabled;
 
+//    @Column(name = "is_deleted")
+//    Boolean isDeleted;
+
     @Column(name = "is_teacher_approved", nullable = false, columnDefinition = "BOOLEAN DEFAULT FALSE")
     Boolean isTeacherApproved;
 

@@ -16,8 +16,14 @@ public interface ProgressRepository extends JpaRepository<CourseProgress, Long> 
             + "and c.user.id =:userId and c.isCompleted = true ")
     boolean existsByLectureIdAndUserId(@Param("lectureId") Long lectureId, @Param("userId") Long userId);
 
-    @Query("select c from CourseProgress c where c.lecture.id in :idsLecture " + "and c.isCompleted = true ")
-    List<CourseProgress> findAllLectureCompleted(@Param("idsLecture") List<Long> idsLecture);
+    @Query("SELECT cp FROM CourseProgress cp WHERE cp.lecture.id IN :lectureIds AND cp.user.id = :userId AND cp.isCompleted = true")
+    List<CourseProgress> findAllLectureCompleted(@Param("lectureIds") List<Long> lectureIds, @Param("userId") Long userId);
+
 
     Optional<CourseProgress> findByLectureIdAndUserId(Long lectureId, Long userId);
+    @Query("SELECT cp.lecture.id, cp.isCompleted " +
+            "FROM CourseProgress cp " +
+            "WHERE cp.course.id = :courseId AND cp.user.id = :userId")
+    List<Object[]> findLectureProgressByCourseIdAndUserId(@Param("courseId") Long courseId,
+                                                          @Param("userId") Long userId);
 }

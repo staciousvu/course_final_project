@@ -15,7 +15,8 @@ public class DiscussionResponse {
     Long id;
     Long lectureId;  // ID của Lecture mà Discussion này thuộc về
     String content;  // Nội dung thảo luận
-    String author;   // Tên người tạo discussion
+    String username;// Tên người tạo discussion
+    String avatar;
     LocalDateTime createdAt; // Ngày tạo discussion
     Integer countReplies;
 }

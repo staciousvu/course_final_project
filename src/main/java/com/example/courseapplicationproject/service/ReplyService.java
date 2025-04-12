@@ -39,7 +39,8 @@ public class ReplyService {
             replyResponse.setId(reply.getId());
             replyResponse.setCreatedAt(reply.getCreatedAt());
             replyResponse.setContent(reply.getContent());
-            replyResponse.setAuthor(reply.getUser().getFirstName()+" "+reply.getUser().getLastName());
+            replyResponse.setUsername(reply.getUser().getFirstName()+" "+reply.getUser().getLastName());
+            replyResponse.setAvatar(reply.getUser().getAvatar());
             return replyResponse;
         }).toList();
     }
@@ -69,7 +70,8 @@ public class ReplyService {
                 .id(reply.getId())
                 .createdAt(reply.getCreatedAt())
                 .content(reply.getContent())
-                .author(reply.getUser().getFirstName()+" "+reply.getUser().getLastName())
+                .username(reply.getUser().getFirstName()+" "+reply.getUser().getLastName())
+                .avatar(reply.getUser().getAvatar())
                 .build();
     }
 }

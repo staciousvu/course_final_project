@@ -16,7 +16,6 @@ public class CourseUpdateRequest {
     String subtitle;
     BigDecimal price;
     String description;
-    Integer duration;
     String language;
     String level;
     Long categoryId;

@@ -32,8 +32,8 @@ public class SectionService {
                 .orElseThrow(() -> new AppException(ErrorCode.COURSE_NOT_FOUND));
         Section section = Section.builder()
                 .title(sectionCreateRequest.getTitle())
-                .displayOrder(sectionCreateRequest.getDisplayOrder())
-                .description(sectionCreateRequest.getDescription())
+                .displayOrder(sectionCreateRequest.getDisplayOrder() == null ? 0 : sectionCreateRequest.getDisplayOrder())
+                .description(sectionCreateRequest.getDescription() == null ? "" : sectionCreateRequest.getDescription())
                 .course(course)
                 .build();
         sectionRepository.save(section);

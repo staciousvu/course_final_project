@@ -47,26 +47,37 @@ public class LectureService {
         lectureRepository.save(lecture);
         return mapToResponse(lecture);
     }
+    public void updateLecture(Long lectureId,String title){
+        Lecture lecture = lectureRepository.findById(lectureId)
+                .orElseThrow(() -> new AppException(ErrorCode.LECTURE_NOT_FOUND));
+        lecture.setTitle(title);
+        lectureRepository.save(lecture);
+    }
 
-    public CompletableFuture<LectureResponse> uploadLecture(LectureUploadRequest request) {
+    public void uploadLecture(LectureUploadRequest request) throws ExecutionException, InterruptedException {
         log.info("Uploading lecture video for ID: {}", request.getLectureId());
 
         Lecture lecture = lectureRepository.findById(request.getLectureId())
                 .orElseThrow(() -> new AppException(ErrorCode.LECTURE_NOT_FOUND));
 
-        return cloudinaryService.uploadVideoAuto(request.getFile())
-                .thenApplyAsync(objects -> {
-                    Double durationDouble = (Double) objects.get("duration"); // Lấy duration dưới dạng Double
-                    Integer duration = durationDouble != null ? durationDouble.intValue() : null; // Chuyển đổi sang Integer
-
-                    String contentUrl = objects.get("secure_url").toString();
-                    lecture.setDuration(duration);
-                    lecture.setContentUrl(contentUrl);
-                    lecture.setType(Lecture.LectureType.valueOf(request.getType()));
-
-                    lectureRepository.save(lecture);
-                    return mapToResponse(lecture);
-                });
+        Map objects = cloudinaryService.uploadVideoAuto(request.getFile()).get();
+        lecture.setContentUrl(objects.get("secure_url").toString());
+        lecture.setDuration((Double) objects.get("duration"));
+        lecture.setType(Lecture.LectureType.VIDEO);
+        lectureRepository.save(lecture);
+//        return cloudinaryService.uploadVideoAuto(request.getFile())
+//                .thenApplyAsync(objects -> {
+//                    Double durationDouble = (Double) objects.get("duration"); // Lấy duration dưới dạng Double
+//                    Integer duration = durationDouble != null ? durationDouble.intValue() : null; // Chuyển đổi sang Integer
+//
+//                    String contentUrl = objects.get("secure_url").toString();
+//                    lecture.setDuration(duration);
+//                    lecture.setContentUrl(contentUrl);
+//                    lecture.setType(Lecture.LectureType.valueOf(request.getType()));
+//
+//                    lectureRepository.save(lecture);
+//                    return mapToResponse(lecture);
+//                });
     }
 
     @Transactional

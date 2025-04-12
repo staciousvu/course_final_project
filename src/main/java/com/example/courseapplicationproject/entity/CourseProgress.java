@@ -19,6 +19,10 @@ public class CourseProgress extends AbstractEntity<Long> {
     Lecture lecture;
 
     @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "course_id")
+    Course course;
+
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "user_id")
     User user;
 

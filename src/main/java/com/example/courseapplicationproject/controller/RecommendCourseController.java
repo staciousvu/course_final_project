@@ -4,6 +4,7 @@ import java.util.List;
 
 import com.example.courseapplicationproject.dto.response.*;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -29,9 +30,8 @@ public class RecommendCourseController {
     public ApiResponse<List<RecommendCourseCategoryLeafs>> getRecommendLeafs() {
         return ApiResponse.success(recommendCourseService.getRecommendCoursesByLeafNodesCategory(), "successful");
     }
-
     @GetMapping("/activity")
-    public ApiResponse<List<CourseResponse>> getRecommendUserActivity() {
+    public ApiResponse<RecommendCourseCategoryRoot> getRecommendUserActivity() {
         return ApiResponse.success(recommendCourseService.getRecommendCoursesByUserActivity(), "successful");
     }
     @GetMapping("/keyword")
@@ -41,5 +41,9 @@ public class RecommendCourseController {
     @GetMapping("/related-enrolled")
     public ApiResponse<List<CourseResponse>> getRecommendRelatedEnrolled() {
         return ApiResponse.success(recommendCourseService.getRecommendCoursesByRelatedCoursesEnrolled(), "successful");
+    }
+    @GetMapping("/category/{categoryId}")
+    public ApiResponse<RecommendCourseCategoryRoot> getRecommendByCategory(@PathVariable Long categoryId) {
+        return ApiResponse.success(recommendCourseService.recommendbyCategory(categoryId), "successful");
     }
 }

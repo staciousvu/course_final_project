@@ -4,6 +4,7 @@ import java.util.*;
 import java.util.stream.Collectors;
 
 import com.example.courseapplicationproject.dto.response.RecommendCourseCategoryRoot;
+import com.example.courseapplicationproject.entity.*;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -13,10 +14,6 @@ import com.example.courseapplicationproject.dto.response.CourseResponse;
 import com.example.courseapplicationproject.dto.response.RecommendCourseKeyword;
 import com.example.courseapplicationproject.dto.response.RecommendCourseCategoryLeafs;
 import com.example.courseapplicationproject.elasticsearch.service.CourseElasticService;
-import com.example.courseapplicationproject.entity.Course;
-import com.example.courseapplicationproject.entity.User;
-import com.example.courseapplicationproject.entity.UserPreferenceRoot;
-import com.example.courseapplicationproject.entity.UserPreferenceSub;
 import com.example.courseapplicationproject.exception.AppException;
 import com.example.courseapplicationproject.exception.ErrorCode;
 import com.example.courseapplicationproject.mapper.CourseMapper;
@@ -42,6 +39,8 @@ public class RecommendCourseService {
     CourseElasticService courseElasticService;
     SearchHistoryRepository searchHistoryRepository;
     EnrollRepository enrollRepository;
+    VoucherService voucherService;
+    CourseContentService courseContentService;
 
     public RecommendCourseCategoryRoot getRecommendCoursesByPreferenceRoot() {
         String email = SecurityContextHolder.getContext().getAuthentication().getName();
@@ -63,7 +62,7 @@ public class RecommendCourseService {
                     .courses(Collections.emptyList())
                     .build();
         }
-        List<Course> courses = courseRepository.findTopCoursesBySubCategories(subCategoriesIds, PageRequest.of(0, 6));
+        List<Course> courses = courseRepository.findTopCoursesBySubCategories(subCategoriesIds, PageRequest.of(0, 5));
         if (courses.isEmpty()) {
             return RecommendCourseCategoryRoot.builder()
                     .categoryRoot(null)
@@ -84,6 +83,10 @@ public class RecommendCourseService {
                                     .orElse(0));
                             response.setAuthorName(course.getAuthor().getFirstName() + " "
                                     + course.getAuthor().getLastName());
+                            response.setAuthorAvatar(course.getAuthor().getAvatar());
+                            response.setPreviewVideo(course.getPreviewVideo());
+                            response.setContents(courseContentService.getAllContents(course.getId())); //course content
+                            response.setDiscount_price(voucherService.calculateDiscountedPrice(course.getPrice()));
                             return response;
                         })
                         .toList())
@@ -110,7 +113,7 @@ public class RecommendCourseService {
         List<RecommendCourseCategoryLeafs> recommendCourseCategoryLeafsRespons = new ArrayList<>();
         for (Long categoryId : selectedCategories) {
             RecommendCourseCategoryLeafs recommendCourseCategoryLeafs = new RecommendCourseCategoryLeafs();
-            Pageable pageable = PageRequest.of(0, 6);
+            Pageable pageable = PageRequest.of(0, 5);
             List<Course> courses = courseRepository.findTopCoursesByCategory(categoryId, pageable);
             recommendCourseCategoryLeafs.setCategoryName(
                     courses.getFirst().getCategory().getName());
@@ -130,6 +133,10 @@ public class RecommendCourseService {
                                 .orElse(0));
                         response.setAuthorName(course.getAuthor().getFirstName() + " "
                                 + course.getAuthor().getLastName());
+                        response.setAuthorAvatar(course.getAuthor().getAvatar());
+                        response.setContents(courseContentService.getAllContents(course.getId())); //course content
+                        response.setPreviewVideo(course.getPreviewVideo());
+                        response.setDiscount_price(voucherService.calculateDiscountedPrice(course.getPrice()));
                         return response;
                     })
                     .toList();
@@ -139,15 +146,18 @@ public class RecommendCourseService {
         return recommendCourseCategoryLeafsRespons;
     }
 
-    public List<CourseResponse> getRecommendCoursesByUserActivity() {
+    public RecommendCourseCategoryRoot getRecommendCoursesByUserActivity() {
         String email = SecurityContextHolder.getContext().getAuthentication().getName();
         User user = userRepository.findByEmail(email).orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND));
-        List<Long> idsCourseUserActivity = userActivityRepository.findIdsActivityByUserId(user.getId());
-        Map<Long, Double> avgRatingForCourses = getAverageRatings(idsCourseUserActivity);
-        Map<Long, Integer> countRatingForCourses = getCountRatings(idsCourseUserActivity);
-        PageRequest pageRequest = PageRequest.of(0, 6);
-        List<Course> courses = courseRepository.findCoursesByIds(idsCourseUserActivity, pageRequest);
-        return courses.stream()
+        List<UserActivity> userActivities = userActivityRepository.findIdsActivityByUserId(user.getId());
+        Category category = userActivities.getFirst().getCourse().getCategory();
+        Long selectedCategoryId = userActivities.getFirst().getCourse().getCategory().getId();
+        Pageable pageable = PageRequest.of(0, 5);
+        List<Course> courseslist = courseRepository.findTopCoursesByCategory(selectedCategoryId,pageable);
+        List<Long> ids = courseslist.stream().map(Course::getId).toList();
+        Map<Long, Double> avgRatingForCourses = getAverageRatings(ids);
+        Map<Long, Integer> countRatingForCourses = getCountRatings(ids);
+        List<CourseResponse> courseResponseList = courseslist.stream()
                 .map(course -> {
                     CourseResponse response = courseMapper.toCourseResponse(course);
                     response.setAvgRating(Optional.ofNullable(avgRatingForCourses.get(course.getId()))
@@ -156,9 +166,16 @@ public class RecommendCourseService {
                             .orElse(0));
                     response.setAuthorName(course.getAuthor().getFirstName() + " "
                             + course.getAuthor().getLastName());
+                    response.setContents(courseContentService.getAllContents(course.getId())); //course content
+                    response.setPreviewVideo(course.getPreviewVideo());
+                    response.setDiscount_price(voucherService.calculateDiscountedPrice(course.getPrice()));
                     return response;
                 })
                 .toList();
+        return RecommendCourseCategoryRoot.builder()
+                .courses(courseResponseList)
+                .categoryRoot(category.getName())
+                .build();
     }
 
     public List<RecommendCourseKeyword> getRecommendByUserSearchHistory() {
@@ -178,7 +195,7 @@ public class RecommendCourseService {
                     .toList();
             Map<Long, Double> avgRatingForCourses = getAverageRatings(courseIds);
             Map<Long, Integer> countRatingForCourses = getCountRatings(courseIds);
-            PageRequest pageRequest = PageRequest.of(0, 6);
+            PageRequest pageRequest = PageRequest.of(0, 5);
             List<Course> courses = courseRepository.findCoursesByIds(courseIds, pageRequest);
             List<CourseResponse> courseResponses = courses.stream()
                     .map(course -> {
@@ -189,6 +206,9 @@ public class RecommendCourseService {
                                 .orElse(0));
                         response.setAuthorName(course.getAuthor().getFirstName() + " "
                                 + course.getAuthor().getLastName());
+                        response.setContents(courseContentService.getAllContents(course.getId())); //course content
+                        response.setPreviewVideo(course.getPreviewVideo());
+                        response.setDiscount_price(voucherService.calculateDiscountedPrice(course.getPrice()));
                         return response;
                     })
                     .toList();
@@ -203,7 +223,7 @@ public class RecommendCourseService {
         User user = userRepository.findByEmail(email).orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND));
         PageRequest pageRequest = PageRequest.of(0, 2);
         List<Long> idsCoursesEnrolled = enrollRepository.getIdsEnrolledCourseLatestByUserId(user.getId(), pageRequest);
-        PageRequest pageRequestRelated = PageRequest.of(0, 6);
+        PageRequest pageRequestRelated = PageRequest.of(0, 5);
         List<Course> relatedEnrolledCourses =
                 courseRepository.findCoursesRelatedByCategory(idsCoursesEnrolled, pageRequestRelated);
         List<Long> ids = relatedEnrolledCourses.stream().map(Course::getId).collect(Collectors.toList());
@@ -218,9 +238,39 @@ public class RecommendCourseService {
                             .orElse(0));
                     response.setAuthorName(course.getAuthor().getFirstName() + " "
                             + course.getAuthor().getLastName());
+                    response.setContents(courseContentService.getAllContents(course.getId())); //course content
+                    response.setPreviewVideo(course.getPreviewVideo());
+                    response.setDiscount_price(voucherService.calculateDiscountedPrice(course.getPrice()));
                     return response;
                 })
                 .toList();
+    }
+    public RecommendCourseCategoryRoot recommendbyCategory(Long categoryId) {
+        Category category=categoryRepository.findById(categoryId).orElseThrow(() -> new AppException(ErrorCode.CATEGORY_NOT_FOUND));
+        PageRequest pageRequest = PageRequest.of(0, 5);
+        List<Course> courses = courseRepository.findTopCoursesByCategory(categoryId, pageRequest);
+        List<Long> ids = courses.stream().map(Course::getId).collect(Collectors.toList());
+        Map<Long, Double> avgRatingForCourses = getAverageRatings(ids);
+        Map<Long, Integer> countRatingForCourses = getCountRatings(ids);
+        List<CourseResponse> courseResponses = courses.stream()
+                .map(course -> {
+                    CourseResponse response = courseMapper.toCourseResponse(course);
+                    response.setAvgRating(Optional.ofNullable(avgRatingForCourses.get(course.getId()))
+                            .orElse(0.0));
+                    response.setCountRating(Optional.ofNullable(countRatingForCourses.get(course.getId()))
+                            .orElse(0));
+                    response.setAuthorName(course.getAuthor().getFirstName() + " "
+                            + course.getAuthor().getLastName());
+                    response.setContents(courseContentService.getAllContents(course.getId())); //course content
+                    response.setPreviewVideo(course.getPreviewVideo());
+                    response.setDiscount_price(voucherService.calculateDiscountedPrice(course.getPrice()));
+                    return response;
+                })
+                .toList();
+        return RecommendCourseCategoryRoot.builder()
+                .courses(courseResponses)
+                .categoryRoot(category.getName())
+                .build();
     }
 
     public Map<Long, Double> getAverageRatings(List<Long> courseIds) {

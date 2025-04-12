@@ -3,6 +3,8 @@ package com.example.courseapplicationproject.dto.request;
 import lombok.*;
 import lombok.experimental.FieldDefaults;
 
+import java.util.List;
+
 @Getter
 @Setter
 @Builder
@@ -10,5 +12,6 @@ import lombok.experimental.FieldDefaults;
 @NoArgsConstructor
 @FieldDefaults(level = AccessLevel.PRIVATE)
 public class PreferenceRequest {
-    Long categoryId;
+    Long categoryRootId;
+    List<Long> subCategoryIds;
 }

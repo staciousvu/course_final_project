@@ -12,6 +12,15 @@ public class CourseSpecification {
                 ? null
                 : (root, query, criteriaBuilder) -> criteriaBuilder.equal(root.get("language"), language);
     }
+    public static Specification<Course> isActiveStatus(Boolean isActive) {
+        return (root, query, criteriaBuilder) -> {
+            if (isActive == null) return null;
+
+            return isActive
+                    ? criteriaBuilder.equal(root.get("isActive"), Course.IsActive.ACTIVE)
+                    : criteriaBuilder.equal(root.get("isActive"), Course.IsActive.INACTIVE);
+        };
+    }
 
     public static Specification<Course> hasAccepted(Boolean isAccepted) {
         return (root, query, criteriaBuilder) -> {

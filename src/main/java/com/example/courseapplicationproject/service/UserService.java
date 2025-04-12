@@ -116,6 +116,7 @@ public class UserService implements IUserService {
                 .password(passwordEncoder.encode(request.getPassword()))
                 .isEnabled(true)
                 .isTeacherApproved(false)
+//                .isDeleted(false)
                 .build();
         userRepository.save(user);
     }

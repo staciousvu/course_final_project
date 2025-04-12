@@ -16,16 +16,16 @@ public class ProgressResponse {
     double percentage;
     int totalLecturesCompleted;
     int totalLectures;
-    List<LecturesCompleted> lecturesCompleted;
-
-    @Getter
-    @Setter
-    @Builder
-    @AllArgsConstructor
-    @NoArgsConstructor
-    @FieldDefaults(level = AccessLevel.PRIVATE)
-    public static class LecturesCompleted {
-        Long lectureId;
-        String lectureName;
-    }
+//    List<LecturesCompleted> lecturesCompleted;
+//
+//    @Getter
+//    @Setter
+//    @Builder
+//    @AllArgsConstructor
+//    @NoArgsConstructor
+//    @FieldDefaults(level = AccessLevel.PRIVATE)
+//    public static class LecturesCompleted {
+//        Long lectureId;
+//        String lectureName;
+//    }
 }

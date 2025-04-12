@@ -33,7 +33,7 @@ public class Lecture extends AbstractEntity<Long> {
     String contentUrl;
 
     @Column(name = "duration", nullable = false)
-    Integer duration;
+    Double duration;
 
     @Column(name = "display_order")
     Integer displayOrder;

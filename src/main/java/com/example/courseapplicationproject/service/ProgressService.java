@@ -30,42 +30,40 @@ public class ProgressService {
     LectureRepository lectureRepository;
     EnrollRepository enrollRepository;
 
-    public ProgressResponse getProgressForCourse(Long courseId) {
-        String email = SecurityContextHolder.getContext().getAuthentication().getName();
-        User user = userRepository.findByEmail(email).orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND));
-        Course course =
-                courseRepository.findById(courseId).orElseThrow(() -> new AppException(ErrorCode.COURSE_NOT_FOUND));
-        int totalLectures = course.getSections().stream()
+    public ProgressResponse getProgressForCourse(Course course_z,Long userId) {
+//        String email = SecurityContextHolder.getContext().getAuthentication().getName();
+//        User user = userRepository.findByEmail(email).orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND));
+        int totalLectures = course_z.getSections().stream()
                 .mapToInt(section -> section.getLectures().size())
                 .sum();
         if (totalLectures == 0) {
             return ProgressResponse.builder()
-                    .courseName(course.getTitle())
+                    .courseName(course_z.getTitle())
                     .percentage(0.0)
                     .totalLectures(0)
                     .totalLecturesCompleted(0)
-                    .lecturesCompleted(Collections.emptyList())
+//                    .lecturesCompleted(Collections.emptyList())
                     .build();
         }
-        List<Long> idsLecture = course.getSections().stream()
+        List<Long> idsLecture = course_z.getSections().stream()
                 .flatMap(section -> section.getLectures().stream().map(Lecture::getId))
                 .toList();
-        List<CourseProgress> listLecturesCompleted = progressRepository.findAllLectureCompleted(idsLecture);
+        List<CourseProgress> listLecturesCompleted = progressRepository.findAllLectureCompleted(idsLecture,userId);
         int totalLecturesCompleted = listLecturesCompleted.size();
-        List<ProgressResponse.LecturesCompleted> lecturesCompleted = listLecturesCompleted.stream()
-                .map(courseProgress -> ProgressResponse.LecturesCompleted.builder()
-                        .lectureId(courseProgress.getLecture().getId())
-                        .lectureName(courseProgress.getLecture().getTitle())
-                        .build())
-                .toList();
+//        List<ProgressResponse.LecturesCompleted> lecturesCompleted = listLecturesCompleted.stream()
+//                .map(courseProgress -> ProgressResponse.LecturesCompleted.builder()
+//                        .lectureId(courseProgress.getLecture().getId())
+//                        .lectureName(courseProgress.getLecture().getTitle())
+//                        .build())
+//                .toList();
         double percentage = (double) totalLecturesCompleted * 100 / totalLectures;
 
         return ProgressResponse.builder()
-                .courseName(course.getTitle())
+                .courseName(course_z.getTitle())
                 .percentage(percentage)
                 .totalLectures(totalLectures)
                 .totalLecturesCompleted(totalLecturesCompleted)
-                .lecturesCompleted(lecturesCompleted)
+//                .lecturesCompleted(lecturesCompleted)
                 .build();
     }
 
@@ -90,6 +88,7 @@ public class ProgressService {
         } else {
             CourseProgress newLectureProgress = progressRepository.save(CourseProgress.builder()
                     .isCompleted(true)
+                    .course(course)
                     .lecture(lecture)
                     .user(user)
                     .build());

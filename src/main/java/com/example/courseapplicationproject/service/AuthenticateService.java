@@ -4,7 +4,12 @@ import java.text.ParseException;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.*;
+import java.util.stream.Collectors;
 
+import com.example.courseapplicationproject.dto.request.LogoutRequest;
+import com.example.courseapplicationproject.entity.Role;
+import com.example.courseapplicationproject.entity.UserPreferenceRoot;
+import com.example.courseapplicationproject.repository.UserPreferenceRootRepository;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -39,6 +44,7 @@ import lombok.extern.slf4j.Slf4j;
 @RequiredArgsConstructor
 @Slf4j
 public class AuthenticateService implements IAuthenticateService {
+    UserPreferenceRootRepository userPreferenceRootRepository;
     @NonFinal
     @Value("${jwt.secret-key}")
     protected String SECRET_KEY;
@@ -59,15 +65,30 @@ public class AuthenticateService implements IAuthenticateService {
         PasswordEncoder passwordEncoder = new BCryptPasswordEncoder();
         User user = userRepository
                 .findByEmail(authenticationRequest.getUsername())
-                .orElseThrow(() -> new AppException(ErrorCode.USER_EXISTED));
+                .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND));
         boolean authenticated = passwordEncoder.matches(authenticationRequest.getPassword(), user.getPassword());
         if (!authenticated) {
             throw new AppException(ErrorCode.AUTHENTICATION_FAILED);
         }
+        String categoryPre;
         if (!user.getIsEnabled()) throw new AppException(ErrorCode.ACCOUNT_BANNED);
+        Optional<UserPreferenceRoot> userPreferenceRoot = userPreferenceRootRepository.findByUserId(user.getId());
+        if (userPreferenceRoot.isEmpty()) {
+            categoryPre = "";
+        }else {
+            categoryPre = userPreferenceRoot.get().getCategory().getName();
+        }
+        Set<String> roles = user.getRoles().stream()
+                .map(Role::getRoleName)
+                .collect(Collectors.toSet());
         return AuthenticationResponse.builder()
                 .authenticated(true)
+                .email(user.getEmail())
+                .avatarUrl(user.getAvatar())
+                .name(user.getFirstName()+" "+user.getLastName())
                 .token(generateToken(user))
+                .roles(roles)
+                .favoriteCategory(categoryPre)
                 .build();
     }
 
@@ -143,6 +164,26 @@ public class AuthenticateService implements IAuthenticateService {
             isValid = false;
         }
         return IntrospectResponse.builder().valid(isValid).build();
+    }
+    public void logout(LogoutRequest request) throws ParseException, JOSEException {
+        try {
+            var signToken = verifyToken(request.getToken(), true);
+
+            String jit = signToken.getJWTClaimsSet().getJWTID();
+            Date expiryTime = signToken.getJWTClaimsSet().getExpirationTime();
+
+            if (!invalidatedTokenRepository.existsById(jit)) {
+                InvalidatedToken invalidatedToken =
+                        InvalidatedToken.builder().id(jit).expiryDate(expiryTime).build();
+
+                invalidatedTokenRepository.save(invalidatedToken);
+            } else {
+                log.info("Token has already been invalidated");
+            }
+
+        } catch (AppException exception) {
+            log.info("Token already expired or invalid");
+        }
     }
 
     @Override

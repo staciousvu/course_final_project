@@ -16,11 +16,11 @@ import org.springframework.web.bind.annotation.*;
 public class ProgressController {
     ProgressService progressService;
 
-    @GetMapping("/{courseId}")
-    public ApiResponse<ProgressResponse> getProgressForCourse(@PathVariable Long courseId) {
-        ProgressResponse progressResponse = progressService.getProgressForCourse(courseId);
-        return ApiResponse.success(progressResponse, "Lấy tiến trình khóa học thành công");
-    }
+//    @GetMapping("/{courseId}")
+//    public ApiResponse<ProgressResponse> getProgressForCourse(@PathVariable Long courseId) {
+//        ProgressResponse progressResponse = progressService.getProgressForCourse(courseId);
+//        return ApiResponse.success(progressResponse, "Lấy tiến trình khóa học thành công");
+//    }
 
     @PostMapping("/complete-lecture/{lectureId}")
     public ApiResponse<LectureProgressResponse> markLectureCompleted(@PathVariable Long lectureId) {

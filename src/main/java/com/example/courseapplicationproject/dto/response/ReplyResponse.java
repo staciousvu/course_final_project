@@ -13,7 +13,8 @@ import java.time.LocalDateTime;
 @FieldDefaults(level = AccessLevel.PRIVATE)
 public class ReplyResponse {
     Long id;
-    String content;  // Nội dung thảo luận
-    String author;   // Tên người tạo discussion
-    LocalDateTime createdAt; // Ngày tạo discussion
+    String content;
+    String username;
+    String avatar;
+    LocalDateTime createdAt;
 }

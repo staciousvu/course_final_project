@@ -12,8 +12,12 @@ import lombok.experimental.FieldDefaults;
 @NoArgsConstructor
 @FieldDefaults(level = AccessLevel.PRIVATE)
 public class CourseReviewResponse {
+    Long id;
+    String courseName;
     LocalDateTime createdAt;
+    LocalDateTime updatedAt;
     String reviewerName;
+    String reviewerAvatar;
     Integer rating;
     String review;
 }

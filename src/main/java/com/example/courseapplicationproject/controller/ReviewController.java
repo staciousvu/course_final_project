@@ -39,5 +39,15 @@ public class ReviewController {
         reviewService.deleteReviewForCourse(courseId);
         return ApiResponse.success(null, "Review deleted successfully");
     }
+    @GetMapping("/list")
+    public ApiResponse<Page<CourseReviewResponse>> getReviews(@RequestParam(defaultValue = "0") int page,
+                                                              @RequestParam(defaultValue = "10") int size) {
+        return ApiResponse.success(reviewService.getReviews(page, size), "OK");
+    }
+    @DeleteMapping("/{reviewId}")
+    public ApiResponse<Void> deleteReview(@PathVariable Long reviewId) {
+        reviewService.deleteReviewByReviewId(reviewId);
+        return ApiResponse.success(null, "Review deleted successfully");
+    }
 }
 
