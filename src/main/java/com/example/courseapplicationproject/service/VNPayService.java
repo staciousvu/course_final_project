@@ -1,6 +1,7 @@
 package com.example.courseapplicationproject.service;
 
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.text.SimpleDateFormat;
@@ -49,7 +50,8 @@ public class VNPayService {
                 "vnp_ReturnUrl",
                 request.getScheme() + "://" + request.getServerName() + ":" + request.getServerPort() + vnp_Returnurl);
         vnParams.put("vnp_IpAddr", VNPayUtils.getIpAddress(request));
-        vnParams.put("vnp_Amount", String.valueOf(payment.getTotalAmount().multiply(new BigDecimal(100))));
+        BigDecimal amount = payment.getTotalAmount().multiply(BigDecimal.valueOf(100)).setScale(0, RoundingMode.HALF_UP);
+        vnParams.put("vnp_Amount",  String.valueOf(amount.longValue()));
         vnParams.put("vnp_OrderInfo", payment.getPaymentInformation());
         vnParams.put("vnp_TxnRef", payment.getTransactionId());
 

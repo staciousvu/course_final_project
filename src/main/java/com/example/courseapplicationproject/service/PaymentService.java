@@ -1,8 +1,10 @@
 package com.example.courseapplicationproject.service;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.UUID;
 
+import com.example.courseapplicationproject.repository.EnrollRepository;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 
@@ -29,15 +31,22 @@ public class PaymentService {
     UserRepository userRepository;
     CourseRepository courseRepository;
     PaymentRepository paymentRepository;
+    EnrollRepository enrollRepository;
 
     public Payment createPayment(PaymentRequest paymentRequest) {
         String transactionId = UUID.randomUUID().toString();
         User user = userRepository
                 .findByEmail(paymentRequest.getEmail())
                 .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND));
+        paymentRequest.getCourses().forEach(idx -> {
+            if (enrollRepository.existsByCourseIdAndUserId(idx, user.getId())) {
+                throw new AppException(ErrorCode.COURSE_ALREADY_PURCHASED);
+            }
+        });
         Payment payment = Payment.builder()
                 .paymentMethod(Payment.PaymentMethod.valueOf(paymentRequest.getPaymentMethod()))
                 .paymentStatus(Payment.PaymentStatus.PENDING)
+                .expiredTime(LocalDateTime.now().plusMinutes(15))
                 .totalAmount(paymentRequest.getTotalAmount())
                 .transactionId(transactionId)
                 .user(user)

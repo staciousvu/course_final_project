@@ -52,7 +52,8 @@ public enum ErrorCode {
     VOUCHER_EXISTED(1037,"Voucher already existed", HttpStatus.CONFLICT),
     VOUCHER_NOT_FOUND(1038 ,"Voucher not found", HttpStatus.NOT_FOUND),
     CAN_NOT_ACTIVATE(1039,"Voucher can not activate",HttpStatus.BAD_REQUEST),
-    TARGET_NOT_FOUND(1040,"Target not found",HttpStatus.NOT_FOUND)
+    TARGET_NOT_FOUND(1040,"Target not found",HttpStatus.NOT_FOUND),
+    CONVERSATION_NOT_FOUND(1041,"Conversation not found",HttpStatus.NOT_FOUND),
     ;
     private int code;
     private String message;

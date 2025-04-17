@@ -31,5 +31,5 @@ public interface EnrollRepository extends JpaRepository<Enrollment, Long> {
     Integer countEnrolledForCourse(@Param("courseId") Long courseId);
 
 
-
+    List<Long> findCourseIdsByUserId(Long id);
 }

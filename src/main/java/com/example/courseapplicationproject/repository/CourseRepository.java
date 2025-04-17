@@ -43,22 +43,48 @@ public interface CourseRepository extends JpaRepository<Course, Long> {
     )
     List<Object[]> countEnrolledForCourses(@Param("courseIds") List<Long> coursesIds);
 
-    @Query("SELECT c FROM Course c JOIN Enrollment e ON e.course.id = c.id WHERE e.user.id = :userId")
+    @Query("SELECT c FROM Course c JOIN Enrollment e ON e.course.id = c.id WHERE e.user.id = :userId order by e.createdAt desc")
     Page<Course> findCoursesForUser(@Param("userId") Long userId, Pageable pageable);
 
 
-    @Query(
-            """
-	SELECT c FROM Course c
-	LEFT JOIN c.enrollments e
-	LEFT JOIN c.reviews r
-	WHERE c.category.id IN :subCategoryIds
-	AND c.status = 'ACCEPTED'
-	GROUP BY c
-	ORDER BY COUNT(DISTINCT e.id) DESC, COALESCE(AVG(r.rating), 0) DESC
+    @Query("""
+    SELECT c FROM Course c
+    LEFT JOIN c.enrollments e
+    LEFT JOIN c.reviews r
+    WHERE c.category.id IN :subCategoryIds
+      AND c.status = 'ACCEPTED'
+      AND c.id NOT IN (
+          SELECT ec.course.id FROM Enrollment ec
+          WHERE ec.user.id = :userId
+      )
+    GROUP BY c
+    ORDER BY COUNT(DISTINCT e.id) DESC, COALESCE(AVG(r.rating), 0) DESC
 """)
-    List<Course> findTopCoursesBySubCategories(@Param("subCategoryIds") List<Long> subCategoryIds, Pageable pageable);
+    List<Course> findTopCoursesBySubCategoriesExcludeEnrolled(
+            @Param("subCategoryIds") List<Long> subCategoryIds,
+            @Param("userId") Long userId,
+            Pageable pageable
+    );
 
+
+    @Query("""
+    SELECT c FROM Course c
+    LEFT JOIN c.enrollments e
+    LEFT JOIN c.reviews r
+    WHERE c.category.id = :categoryId
+      AND c.status = 'ACCEPTED'
+      AND c.id NOT IN (
+          SELECT ec.course.id FROM Enrollment ec
+          WHERE ec.user.id = :userId
+      )
+    GROUP BY c
+    ORDER BY COUNT(DISTINCT e.id) DESC, COALESCE(AVG(r.rating), 0) DESC
+""")
+    List<Course> findTopCoursesByCategoryExcludeEnrolled(
+            @Param("categoryId") Long categoryId,
+            @Param("userId") Long userId,
+            Pageable pageable
+    );
     @Query(
             """
 		SELECT c FROM Course c
@@ -71,23 +97,31 @@ public interface CourseRepository extends JpaRepository<Course, Long> {
 	""")
     List<Course> findTopCoursesByCategory(@Param("categoryId") Long categoryId, Pageable pageable);
 
+
     @Query("select distinct(c) from Course c " +
             "where c.id in :courseIds " +
             "and c.status='ACCEPTED'" +
             "order by c.createdAt desc")
     List<Course> findCoursesByIds(@Param("courseIds") List<Long> courseIds, Pageable pageable);
 
-    @Query(
-            """
-            SELECT c FROM Course c
-            WHERE c.category.id IN (
-                SELECT c1.category.id FROM Course c1 WHERE c1.id IN :courseIds
-            )
-            AND c.id NOT IN :courseIds
-            ORDER BY c.createdAt DESC
-            """
+    @Query("""
+    SELECT c FROM Course c
+    WHERE c.category.id IN (
+        SELECT c1.category.id FROM Course c1 WHERE c1.id IN :courseIds
     )
-    List<Course> findCoursesRelatedByCategory(@Param("courseIds") List<Long> courseIds, Pageable pageable);
+    AND c.id NOT IN :courseIds
+    AND c.id NOT IN (
+        SELECT e.course.id FROM Enrollment e WHERE e.user.id = :userId
+    )
+    AND c.status = 'ACCEPTED'
+    ORDER BY c.createdAt DESC
+""")
+    List<Course> findCoursesRelatedByCategoryAndExcludeEnrolled(
+            @Param("courseIds") List<Long> courseIds,
+            @Param("userId") Long userId,
+            Pageable pageable
+    );
+
 
     @Query("SELECT COUNT(c) > 0 FROM Course c WHERE c.category.id = :categoryId")
     boolean existsByCategoryId(@Param("categoryId") Long categoryId);

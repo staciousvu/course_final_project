@@ -1,6 +1,8 @@
 package com.example.courseapplicationproject.repository;
 
 import java.math.BigDecimal;
+import java.time.LocalDateTime;
+import java.util.List;
 import java.util.Optional;
 
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -20,4 +22,5 @@ public interface PaymentRepository extends JpaRepository<Payment, Long> {
             "WHERE c.id = :courseId AND p.paymentStatus = 'SUCCESS'")
     BigDecimal revenueByCourse(@Param("courseId") Long courseId);
 
+    List<Payment> findAllByPaymentStatusAndExpiredTimeBefore(Payment.PaymentStatus paymentStatus, LocalDateTime now);
 }

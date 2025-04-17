@@ -62,12 +62,6 @@ public class CourseService {
     public void enrollCourse(Payment payment) {
         User user = payment.getUser();
         List<PaymentDetails> paymentDetails = payment.getPaymentDetails();
-        paymentDetails.forEach(paymentDetail -> {
-            Long courseId = paymentDetail.getCourse().getId();
-            if (enrollRepository.existsByCourseIdAndUserId(courseId, user.getId())) {
-                throw new AppException(ErrorCode.COURSE_ALREADY_PURCHASED);
-            }
-        });
         List<Enrollment> enrollments = paymentDetails.stream()
                 .map(paymentDetail -> {
                     return Enrollment.builder()
@@ -166,24 +160,7 @@ public class CourseService {
         courseRepository.save(course);
         return course.getId();
     }
-//    public void createDraftCourse(String title, Long categoryId) {
-//        String email = SecurityContextHolder.getContext().getAuthentication().getName();
-//        User user = userRepository.findByEmail(email)
-//                .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND));
-//
-//        Category category = categoryRepository.findById(categoryId)
-//                .orElseThrow(() -> new AppException(ErrorCode.CATEGORY_NOT_FOUND));
-//
-//        Course course = Course.builder()
-//                .title(title)
-//                .status(Course.CourseStatus.DRAFT)
-//                .author(user)
-//                .label(Course.Label.NONE)
-//                .category(category)
-//                .build();
-//
-//        courseRepository.save(course);
-//    }
+
     public CourseDTO getBasicInfo(Long courseId){
         Course course = courseRepository.findById(courseId)
                 .orElseThrow(() -> new AppException(ErrorCode.COURSE_NOT_FOUND));
@@ -272,7 +249,7 @@ public class CourseService {
     }
     public Page<CourseResponse> searchCourses(FilterRequest filterRequest, Integer page, Integer size) {
         String keyword = filterRequest.getKeyword();
-        String language = filterRequest.getLanguage();
+        List<String> languages = filterRequest.getLanguages();
         String level = filterRequest.getLevel();
         Long categoryId = filterRequest.getCategoryId();
         Boolean isFree = filterRequest.getIsFree();
@@ -295,7 +272,7 @@ public class CourseService {
         }
 
         spec = spec.and(CourseSpecification.hasCategory(categoryId))
-                .and(CourseSpecification.hasLanguage(language))
+                .and(CourseSpecification.hasLanguages(languages))
                 .and(CourseSpecification.isActiveStatus(true))
                 .and(CourseSpecification.isFree(isFree))
                 .and(CourseSpecification.hasLevel(level))
@@ -406,6 +383,7 @@ public class CourseService {
             courseResponse.setAuthorName(
                     course.getAuthor().getLastName() + " " + course.getAuthor().getFirstName());
             courseResponse.setAuthorAvatar(course.getAuthor().getAvatar());
+            courseResponse.setDiscount_price(voucherService.calculateDiscountedPrice(course.getPrice()));
             return courseResponse;
         });
     }

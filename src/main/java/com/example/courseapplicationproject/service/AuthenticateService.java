@@ -88,6 +88,7 @@ public class AuthenticateService implements IAuthenticateService {
                 .name(user.getFirstName()+" "+user.getLastName())
                 .token(generateToken(user))
                 .roles(roles)
+                .id(user.getId())
                 .favoriteCategory(categoryPre)
                 .build();
     }

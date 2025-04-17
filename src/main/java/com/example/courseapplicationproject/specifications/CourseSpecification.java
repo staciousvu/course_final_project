@@ -1,16 +1,18 @@
 package com.example.courseapplicationproject.specifications;
 
 import java.math.BigDecimal;
+import java.util.List;
 
 import org.springframework.data.jpa.domain.Specification;
 
 import com.example.courseapplicationproject.entity.Course;
 
 public class CourseSpecification {
-    public static Specification<Course> hasLanguage(String language) {
-        return (language == null || language.isEmpty())
-                ? null
-                : (root, query, criteriaBuilder) -> criteriaBuilder.equal(root.get("language"), language);
+    public static Specification<Course> hasLanguages(List<String> languages) {
+        return (root, query, cb) -> {
+            if (languages == null || languages.isEmpty()) return null;
+            return root.get("language").in(languages);
+        };
     }
     public static Specification<Course> isActiveStatus(Boolean isActive) {
         return (root, query, criteriaBuilder) -> {

@@ -5,10 +5,7 @@ import java.io.IOException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 import com.example.courseapplicationproject.dto.request.PaymentRequest;
 import com.example.courseapplicationproject.dto.response.ApiResponse;
@@ -34,7 +31,7 @@ public class PaymentController {
     VNPayService vnPayService;
     CourseService courseService;
 
-    @GetMapping("/vn-pay")
+    @PostMapping("/vn-pay")
     public ApiResponse<String> pay(@RequestBody PaymentRequest paymentRequest, HttpServletRequest request) {
         Payment payment = paymentService.createPayment(paymentRequest);
         return ApiResponse.success(vnPayService.createVNPayUrl(payment, request), "Create vnpayUrl successfully");
@@ -51,10 +48,10 @@ public class PaymentController {
             courseService.enrollCourse(payment);
             paymentService.updatePaymentStatusToSuccess(transactionId);
 
-            response.sendRedirect("http://localhost:3000/payment-success");
+            response.sendRedirect("http://localhost:4200/payment-success");
         } else {
             paymentService.updatePaymentStatusToFailed(transactionId);
-            response.sendRedirect("http://localhost:3000/payment-failed");
+            response.sendRedirect("http://localhost:4200/payment-failed");
         }
     }
 }

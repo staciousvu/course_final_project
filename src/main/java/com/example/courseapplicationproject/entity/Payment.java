@@ -1,6 +1,7 @@
 package com.example.courseapplicationproject.entity;
 
 import java.math.BigDecimal;
+import java.time.LocalDateTime;
 import java.util.List;
 
 import jakarta.persistence.*;
@@ -45,6 +46,9 @@ public class Payment extends AbstractEntity<Long> {
     @Enumerated(EnumType.STRING)
     @Column(name = "payment_status", nullable = false)
     PaymentStatus paymentStatus;
+
+    @Column(name = "expired_time",nullable = true)
+    LocalDateTime expiredTime;
 
     @Column(name = "transaction_id", unique = true)
     String transactionId;

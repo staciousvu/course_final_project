@@ -62,7 +62,7 @@ public class RecommendCourseService {
                     .courses(Collections.emptyList())
                     .build();
         }
-        List<Course> courses = courseRepository.findTopCoursesBySubCategories(subCategoriesIds, PageRequest.of(0, 5));
+        List<Course> courses = courseRepository.findTopCoursesBySubCategoriesExcludeEnrolled(subCategoriesIds,user.getId(), PageRequest.of(0, 5));
         if (courses.isEmpty()) {
             return RecommendCourseCategoryRoot.builder()
                     .categoryRoot(null)
@@ -114,7 +114,7 @@ public class RecommendCourseService {
         for (Long categoryId : selectedCategories) {
             RecommendCourseCategoryLeafs recommendCourseCategoryLeafs = new RecommendCourseCategoryLeafs();
             Pageable pageable = PageRequest.of(0, 5);
-            List<Course> courses = courseRepository.findTopCoursesByCategory(categoryId, pageable);
+            List<Course> courses = courseRepository.findTopCoursesByCategoryExcludeEnrolled(categoryId,user.getId(), pageable);
             recommendCourseCategoryLeafs.setCategoryName(
                     courses.getFirst().getCategory().getName());
             if (courses.isEmpty()) continue; // Bỏ qua nếu không có khóa học
@@ -153,7 +153,7 @@ public class RecommendCourseService {
         Category category = userActivities.getFirst().getCourse().getCategory();
         Long selectedCategoryId = userActivities.getFirst().getCourse().getCategory().getId();
         Pageable pageable = PageRequest.of(0, 5);
-        List<Course> courseslist = courseRepository.findTopCoursesByCategory(selectedCategoryId,pageable);
+        List<Course> courseslist = courseRepository.findTopCoursesByCategoryExcludeEnrolled(selectedCategoryId,user.getId(),pageable);
         List<Long> ids = courseslist.stream().map(Course::getId).toList();
         Map<Long, Double> avgRatingForCourses = getAverageRatings(ids);
         Map<Long, Integer> countRatingForCourses = getCountRatings(ids);
@@ -180,43 +180,62 @@ public class RecommendCourseService {
 
     public List<RecommendCourseKeyword> getRecommendByUserSearchHistory() {
         String email = SecurityContextHolder.getContext().getAuthentication().getName();
-        User user = userRepository.findByEmail(email).orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND));
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND));
+
         List<String> keywordLists = searchHistoryRepository.findByUserId(user.getId());
-        List<RecommendCourseKeyword> recommendCourseKeywordRespons = new ArrayList<>();
         if (keywordLists.isEmpty()) {
             return Collections.emptyList();
         }
+
+        // Lấy danh sách ID khóa học mà user đã đăng ký
+        List<Long> enrolledCourseIds = enrollRepository.findCourseIdsByUserId(user.getId());
+
+        List<RecommendCourseKeyword> recommendCourseKeywordRespons = new ArrayList<>();
         List<String> sub = (keywordLists.size() > 2) ? keywordLists.subList(0, 2) : keywordLists;
+
         sub.forEach(keyword -> {
             RecommendCourseKeyword recommendCourseKeyword = new RecommendCourseKeyword();
             recommendCourseKeyword.setKeyword(keyword);
+
+            // Tìm danh sách courseId từ elasticsearch
             List<Long> courseIds = courseElasticService.fuzzySearch(keyword).stream()
                     .map(Long::parseLong)
                     .toList();
+
+            // Tính trung bình rating và số lượng rating cho các khóa học
             Map<Long, Double> avgRatingForCourses = getAverageRatings(courseIds);
             Map<Long, Integer> countRatingForCourses = getCountRatings(courseIds);
+
+            // Lấy danh sách course từ repository
             PageRequest pageRequest = PageRequest.of(0, 5);
             List<Course> courses = courseRepository.findCoursesByIds(courseIds, pageRequest);
+
+            // Lọc các khóa học chưa đăng ký và map sang response
             List<CourseResponse> courseResponses = courses.stream()
+                    .filter(course -> !enrolledCourseIds.contains(course.getId()))
                     .map(course -> {
                         CourseResponse response = courseMapper.toCourseResponse(course);
-                        response.setAvgRating(Optional.ofNullable(avgRatingForCourses.get(course.getId()))
-                                .orElse(0.0));
-                        response.setCountRating(Optional.ofNullable(countRatingForCourses.get(course.getId()))
-                                .orElse(0));
-                        response.setAuthorName(course.getAuthor().getFirstName() + " "
-                                + course.getAuthor().getLastName());
-                        response.setContents(courseContentService.getAllContents(course.getId())); //course content
+                        response.setAvgRating(Optional.ofNullable(avgRatingForCourses.get(course.getId())).orElse(0.0));
+                        response.setCountRating(Optional.ofNullable(countRatingForCourses.get(course.getId())).orElse(0));
+                        response.setAuthorName(course.getAuthor().getFirstName() + " " + course.getAuthor().getLastName());
+                        response.setContents(courseContentService.getAllContents(course.getId()));
                         response.setPreviewVideo(course.getPreviewVideo());
                         response.setDiscount_price(voucherService.calculateDiscountedPrice(course.getPrice()));
                         return response;
                     })
                     .toList();
-            recommendCourseKeyword.setCourses(courseResponses);
-            recommendCourseKeywordRespons.add(recommendCourseKeyword);
+
+            // Nếu có course thì mới add vào kết quả
+            if (!courseResponses.isEmpty()) {
+                recommendCourseKeyword.setCourses(courseResponses);
+                recommendCourseKeywordRespons.add(recommendCourseKeyword);
+            }
         });
+
         return recommendCourseKeywordRespons;
     }
+
 
     public List<CourseResponse> getRecommendCoursesByRelatedCoursesEnrolled() {
         String email = SecurityContextHolder.getContext().getAuthentication().getName();
@@ -225,7 +244,7 @@ public class RecommendCourseService {
         List<Long> idsCoursesEnrolled = enrollRepository.getIdsEnrolledCourseLatestByUserId(user.getId(), pageRequest);
         PageRequest pageRequestRelated = PageRequest.of(0, 5);
         List<Course> relatedEnrolledCourses =
-                courseRepository.findCoursesRelatedByCategory(idsCoursesEnrolled, pageRequestRelated);
+                courseRepository.findCoursesRelatedByCategoryAndExcludeEnrolled(idsCoursesEnrolled, user.getId(), pageRequestRelated);
         List<Long> ids = relatedEnrolledCourses.stream().map(Course::getId).collect(Collectors.toList());
         Map<Long, Double> avgRatingForCourses = getAverageRatings(ids);
         Map<Long, Integer> countRatingForCourses = getCountRatings(ids);
