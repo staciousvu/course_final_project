@@ -150,6 +150,12 @@ public class RecommendCourseService {
         String email = SecurityContextHolder.getContext().getAuthentication().getName();
         User user = userRepository.findByEmail(email).orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND));
         List<UserActivity> userActivities = userActivityRepository.findIdsActivityByUserId(user.getId());
+        if (userActivities.isEmpty()){
+            return RecommendCourseCategoryRoot.builder()
+                    .courses(Collections.emptyList())
+                    .categoryRoot(null)
+                    .build();
+        }
         Category category = userActivities.getFirst().getCourse().getCategory();
         Long selectedCategoryId = userActivities.getFirst().getCourse().getCategory().getId();
         Pageable pageable = PageRequest.of(0, 5);

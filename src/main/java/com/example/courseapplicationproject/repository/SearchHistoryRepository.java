@@ -14,6 +14,6 @@ public interface SearchHistoryRepository extends JpaRepository<UserSearchKeyword
     @Query("SELECT u.keyword FROM UserSearchKeywordHistory u " +
             "WHERE u.user.id = :userId " +
             "GROUP BY u.keyword " +
-            "ORDER BY COALESCE(MIN(u.createdAt), CURRENT_TIMESTAMP) ASC")
+            "ORDER BY MAX(u.createdAt) DESC")
     List<String> findByUserId(@Param("userId") Long userId);
 }

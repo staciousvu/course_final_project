@@ -86,6 +86,7 @@ public class MessageService {
                 .senderId(message.getSender().getId())
                 .senderEmail(message.getSender().getEmail())
                 .content(message.getContent())
+                .senderAvatar(message.getSender().getAvatar())
                 .isRead(message.getIsRead())
                 .createdAt(message.getCreatedAt())
                 .build();

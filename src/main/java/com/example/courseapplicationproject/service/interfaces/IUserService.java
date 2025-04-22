@@ -18,9 +18,9 @@ public interface IUserService {
 
     public void verifyAndCreateUser(String email, String otp);
 
-    public void sentOtpReset(String email);
+    public void sentOtpReset(UserRequestReset request) throws MessagingException;
 
-    public OtpResponse verifyOtpReset(VerifyResetPasswordRequest request);
+    public void verifyOtpReset(VerifyResetPasswordRequest request);
 
     public void resetPassword(ResetPasswordRequest request);
 

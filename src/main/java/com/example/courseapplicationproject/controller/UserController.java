@@ -45,14 +45,15 @@ public class UserController {
     }
 
     @PostMapping("/sent-otp-reset")
-    public ApiResponse<Void> sentOtpReset(@RequestParam String email) {
-        userService.sentOtpReset(email);
+    public ApiResponse<Void> sentOtpReset(@RequestBody UserRequestReset userRequestReset) {
+        userService.sentOtpReset(userRequestReset);
         return ApiResponse.success(null, "OTP đặt lại mật khẩu đã được gửi");
     }
 
     @PostMapping("/verify-otp-reset")
-    public ApiResponse<OtpResponse> verifyOtpReset(@RequestBody @Valid VerifyResetPasswordRequest request) {
-        return ApiResponse.success(userService.verifyOtpReset(request), "Xác thực OTP thành công");
+    public ApiResponse<Void> verifyOtpReset(@RequestBody @Valid VerifyResetPasswordRequest request) {
+        userService.verifyOtpReset(request);
+        return ApiResponse.success(null, "Xác thực OTP thành công");
     }
 
     @PostMapping("/reset-password")
@@ -66,12 +67,10 @@ public class UserController {
         userService.changePassword(request);
         return ApiResponse.success(null, "Mật khẩu đã được thay đổi");
     }
-
     @PutMapping("/update-profile")
     public ApiResponse<UserResponse> updateProfile(@RequestBody @Valid UpdateProfileRequest request) {
         return ApiResponse.success(userService.updateProfile(request), "Cập nhật hồ sơ thành công");
     }
-
     @PostMapping("/upload-avatar")
     public ApiResponse<String> uploadAvatar(@RequestParam("file") MultipartFile file) throws IOException {
         String avatarUrl = userService.uploadAvatar(file);

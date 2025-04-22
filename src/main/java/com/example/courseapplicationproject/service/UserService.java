@@ -46,8 +46,9 @@ import lombok.extern.slf4j.Slf4j;
 public class UserService implements IUserService {
     static String suffixRegisterObject = "_object_register";
     static String suffixRegisterOtp = "_otp_register";
+    static String suffixResetObject = "_object_reset";
     static String suffixResetOtp = "_otp_reset";
-    static String company = "NVIDIA.GROUP_CO";
+    static String company = "Eduflow";
 
 //    @NonFinal
 //    @Value("${rabbitmq.exchange-name}")
@@ -77,9 +78,9 @@ public class UserService implements IUserService {
         if (userRepository.existsByEmail(request.getEmail())) {
             throw new AppException(ErrorCode.USER_EXISTED);
         }
-        if (!Objects.equals(request.getPassword(), request.getPasswordConfirm())) {
-            throw new AppException(ErrorCode.PASSWORD_CONFIRM_WRONG);
-        }
+//        if (!Objects.equals(request.getPassword(), request.getPasswordConfirm())) {
+//            throw new AppException(ErrorCode.PASSWORD_CONFIRM_WRONG);
+//        }
 
         redisService.save(request.getEmail() + suffixRegisterObject, request);
         String otp = OtpUtils.generateOtp();
@@ -106,8 +107,12 @@ public class UserService implements IUserService {
         Role role = roleRepository
                 .findByRoleName(Role.RoleType.LEARNER.toString())
                 .orElseThrow(() -> new AppException(ErrorCode.ROLE_NOT_FOUND));
+        Role role2 = roleRepository
+                .findByRoleName(Role.RoleType.INSTRUCTOR.toString())
+                .orElseThrow(() -> new AppException(ErrorCode.ROLE_NOT_FOUND));
         Set<Role> roles = new HashSet<>();
         roles.add(role);
+        roles.add(role2);
         User user = User.builder()
                 .roles(roles)
                 .firstName(request.getFirstName())
@@ -118,19 +123,20 @@ public class UserService implements IUserService {
                 .isTeacherApproved(false)
 //                .isDeleted(false)
                 .build();
-        userRepository.save(user);
+//        userRepository.save(user);
     }
 
     @Override
-    public void sentOtpReset(String email) {
-        if (!userRepository.existsByEmail(email)) throw new AppException(ErrorCode.USER_NOT_FOUND);
+    public void sentOtpReset(UserRequestReset userRequestReset) {
+        if (!userRepository.existsByEmail(userRequestReset.getEmail())) throw new AppException(ErrorCode.USER_NOT_FOUND);
 
+        redisService.save(userRequestReset.getEmail() + suffixResetObject, userRequestReset);
         String otp = OtpUtils.generateOtp();
-        redisService.save(email + suffixResetOtp, otp);
+        redisService.save(userRequestReset.getEmail() + suffixResetOtp, otp);
 
         NotificationEvent event = NotificationEvent.builder()
                 .channel("EMAIL")
-                .recipient(email)
+                .recipient(userRequestReset.getEmail())
                 .templateCode("reset-otp")
                 .subject(company)
                 .param(Map.of("otp", otp))
@@ -140,12 +146,15 @@ public class UserService implements IUserService {
     }
 
     @Override
-    public OtpResponse verifyOtpReset(VerifyResetPasswordRequest request) {
-        if (!userRepository.existsByEmail(request.getEmail())) throw new AppException(ErrorCode.USER_NOT_FOUND);
+    public void verifyOtpReset(VerifyResetPasswordRequest request) {
+        User user = userRepository.findByEmail(request.getEmail())
+                .orElseThrow(()->new AppException(ErrorCode.USER_NOT_FOUND));
         String storedOtp = redisService.get(request.getEmail() + suffixResetOtp, String.class);
         if (Objects.isNull(storedOtp) || !storedOtp.equals(request.getOtp()))
-            return OtpResponse.builder().valid(false).build();
-        return OtpResponse.builder().valid(true).build();
+            throw new AppException(ErrorCode.INVALID_OTP);
+        UserRequestReset request1 = redisService.get(request.getEmail() + suffixResetObject, UserRequestReset.class);
+        user.setPassword(passwordEncoder.encode(request1.getPassword()));
+        userRepository.save(user);
     }
 
     @Override

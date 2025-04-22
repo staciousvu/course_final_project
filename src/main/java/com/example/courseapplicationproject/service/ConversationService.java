@@ -12,6 +12,7 @@ import com.example.courseapplicationproject.repository.MessageRepository;
 import com.example.courseapplicationproject.repository.UserRepository;
 import com.example.courseapplicationproject.service.interfaces.IConversationService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
@@ -26,15 +27,18 @@ public class ConversationService {
     private final UserRepository userRepository;
     private final MessageRepository messageRepository;
 
-    public ConversationResponse getOrCreateConversation(String emailStudent, String emailInstructor) {
-        User student = userRepository.findByEmail(emailStudent)
+    public ConversationResponse getOrCreateConversation(Long instructorId) {
+        String email= SecurityContextHolder.getContext().getAuthentication().getName();
+        User student = userRepository.findByEmail(email)
                 .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND));
-        User instructor = userRepository.findByEmail(emailInstructor)
+        User instructor = userRepository.findById(instructorId)
                 .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND));
         // Nếu đã có conversation giữa student và instructor, trả về
         Optional<Conversation> optional = conversationRepository.findByStudentAndInstructor(student, instructor);
         if (optional.isPresent()) {
-            return mapToResponse(optional.get());
+            Conversation conversation = optional.get();
+//            conversation.setLastMessageTime(LocalDateTime.now());
+            return mapToResponse(conversationRepository.save(conversation));
         }
         // Ngược lại, tạo mới
         Conversation conversation = Conversation.builder()

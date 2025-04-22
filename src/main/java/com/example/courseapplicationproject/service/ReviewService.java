@@ -31,6 +31,15 @@ public class ReviewService {
     CourseRepository courseRepository;
     UserRepository userRepository;
     CourseReviewRepository courseReviewRepository;
+    public Page<CourseReviewResponse> getReviewsForInstructor( int page, int size){
+        String email = SecurityContextHolder.getContext().getAuthentication().getName();
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND));
+        Pageable pageable = PageRequest.of(page, size, Sort.by("createdAt").descending());
+        Page<CourseReview> reviewPage = courseReviewRepository.findReviewForInstructor(user.getId(),pageable);
+        return reviewPage.map(this::mapToResponse);
+    }
+
 
     public Page<CourseReviewResponse> getReviewsForCourse(Long courseId, int page, int size) {
         Course course =
@@ -46,6 +55,33 @@ public class ReviewService {
         Page<CourseReview> reviewsPage = courseReviewRepository.findAll(pageable);
         return reviewsPage.map(this::mapToResponse);
     }
+    public Page<CourseReviewResponse> getReviewsSpecial(Long courseId, int page, int size) {
+        String email = SecurityContextHolder.getContext().getAuthentication().getName();
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND));
+
+        Pageable pageable = PageRequest.of(page, size, Sort.by("createdAt").descending());
+
+        Page<CourseReview> reviewPage;
+
+        if (courseId == 0) {
+            // Lấy tất cả review của instructor
+            reviewPage = courseReviewRepository.findReviewForInstructor(user.getId(), pageable);
+        } else {
+            // Lấy review cho course cụ thể
+            Course course = courseRepository.findById(courseId)
+                    .orElseThrow(() -> new AppException(ErrorCode.COURSE_NOT_FOUND));
+
+            if (!course.getAuthor().getId().equals(user.getId())) {
+                throw new AppException(ErrorCode.ACCESS_DENIED);
+            }
+
+            reviewPage = courseReviewRepository.findByCourseId(courseId, pageable);
+        }
+
+        return reviewPage.map(this::mapToResponse);
+    }
+
 
     public CourseReviewResponse addReviewForCourse(CourseReviewRequest courseReviewRequest) {
         Long courseId = courseReviewRequest.getCourseId();

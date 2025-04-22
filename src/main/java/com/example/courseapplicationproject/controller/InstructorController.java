@@ -2,6 +2,7 @@ package com.example.courseapplicationproject.controller;
 
 import com.example.courseapplicationproject.dto.response.AdminDTO;
 import com.example.courseapplicationproject.dto.response.ApiResponse;
+import com.example.courseapplicationproject.dto.response.InstructorCourseResponse;
 import com.example.courseapplicationproject.dto.response.InstructorListResponse;
 import com.example.courseapplicationproject.service.InstructorService;
 import lombok.AccessLevel;
@@ -23,6 +24,10 @@ public class InstructorController {
     @GetMapping("/all")
     public ApiResponse<List<InstructorListResponse>> getAllInstructor(@RequestParam(required = false) String keyword) {
         return ApiResponse.success(instructorService.getAllInstructor(keyword),"OK");
+    }
+    @GetMapping("/my-courses")
+    public ApiResponse<List<InstructorCourseResponse>> getMyCourses() {
+        return ApiResponse.success(instructorService.instructorCourseResponses(),"OK");
     }
 
 }

@@ -13,10 +13,10 @@ import lombok.experimental.FieldDefaults;
 public enum ErrorCode {
     USER_EXISTED(1000, "User already existed", HttpStatus.BAD_REQUEST),
     GENERATE_TOKEN_FAILED(1001, "Generate token failed", HttpStatus.BAD_REQUEST),
-    AUTHENTICATION_FAILED(1002, "Authentication failed", HttpStatus.UNAUTHORIZED),
+    AUTHENTICATION_FAILED(1002, "Wrong password ,retype password", HttpStatus.UNAUTHORIZED),
     ACCOUNT_BANNED(1003, "Account banned", HttpStatus.UNAUTHORIZED),
     ROLE_NOT_FOUND(1004, "Role not found", HttpStatus.NOT_FOUND),
-    USER_NOT_FOUND(1005, "User not found", HttpStatus.NOT_FOUND),
+    USER_NOT_FOUND(1005, "Email not found ,retype valid email", HttpStatus.NOT_FOUND),
     EXPIRED_TOKEN(1006, "Expired token", HttpStatus.UNAUTHORIZED),
     INVALID_TOKEN(1007, "Invalid token", HttpStatus.UNAUTHORIZED),
     ACCESS_DENIED(1008, "Access denied , you can't access this resources", HttpStatus.FORBIDDEN),

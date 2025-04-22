@@ -1,6 +1,7 @@
 package com.example.courseapplicationproject.repository;
 
 import java.math.BigDecimal;
+import java.util.List;
 import java.util.Optional;
 
 import com.example.courseapplicationproject.entity.Course;
@@ -28,4 +29,10 @@ public interface CourseReviewRepository extends JpaRepository<CourseReview, Long
     Page<CourseReview> findByCourseId(Long courseId, Pageable pageable);
 
     boolean existsByCourseAndUser(Course course, User user);
+
+    @Query("SELECT cr FROM CourseReview cr " +
+            "JOIN cr.course c " +
+            "WHERE c.author.id = :instructorId")
+    Page<CourseReview> findReviewForInstructor(@Param("instructorId") Long instructorId,Pageable pageable);
+
 }

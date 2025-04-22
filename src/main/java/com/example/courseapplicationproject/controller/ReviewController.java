@@ -16,7 +16,18 @@ import org.springframework.web.bind.annotation.*;
 @RequiredArgsConstructor
 public class ReviewController {
     ReviewService reviewService;
-
+    @GetMapping("/instructor/special/{courseId}")
+    public ApiResponse<Page<CourseReviewResponse>> getReviewsSpecial(
+            @PathVariable Long courseId,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size){
+        return ApiResponse.success(reviewService.getReviewsSpecial(courseId,page, size),"OK");
+    }
+    @GetMapping("/instructor/all-course")
+    public ApiResponse<Page<CourseReviewResponse>> getReviewsForAllCourseInstructor(@RequestParam(defaultValue = "0") int page,
+                                                                                    @RequestParam(defaultValue = "10") int size){
+        return ApiResponse.success(reviewService.getReviewsForInstructor(page, size),"OK");
+    }
     @GetMapping("/course/{courseId}")
     public ApiResponse<Page<CourseReviewResponse>> getReviewsForCourse(@PathVariable Long courseId,
                                                                        @RequestParam(defaultValue = "0") int page,

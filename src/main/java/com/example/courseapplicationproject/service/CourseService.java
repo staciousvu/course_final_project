@@ -247,6 +247,7 @@ public class CourseService {
         }
         courseRepository.save(course);
     }
+    SearchHistoryRepository searchHistoryRepository;
     public Page<CourseResponse> searchCourses(FilterRequest filterRequest, Integer page, Integer size) {
         String keyword = filterRequest.getKeyword();
         List<String> languages = filterRequest.getLanguages();
@@ -256,6 +257,11 @@ public class CourseService {
         Integer minDuration = filterRequest.getMinDuration();
         Integer maxDuration = filterRequest.getMaxDuration();
         Integer avgRatings = filterRequest.getAvgRatings();
+        String email = SecurityContextHolder.getContext().getAuthentication().getName();
+        User user=null;
+        if (!email.isEmpty()){
+            user= userRepository.findByEmail(email).orElse(null);
+        }
 
         // Đảm bảo không bị null
         List<String> sortByList = Optional.ofNullable(filterRequest.getSortByList()).orElse(new ArrayList<>());
@@ -266,6 +272,14 @@ public class CourseService {
         // Xử lý tìm kiếm theo keyword qua ElasticSearch
         if (keyword != null && !keyword.isEmpty()) {
             List<String> courseIdsString = courseElasticService.fuzzySearch(keyword);
+            if (user!=null){
+                UserSearchKeywordHistory userSearchKeywordHistory = UserSearchKeywordHistory.builder()
+                        .keyword(keyword)
+                        .user(user)
+                        .build();
+                searchHistoryRepository.save(userSearchKeywordHistory);
+            }
+
             List<Long> courseIds = courseIdsString.stream().map(Long::parseLong).toList();
             if (courseIds.isEmpty()) return Page.empty();
             spec = spec.and(((root, query, criteriaBuilder) -> root.get("id").in(courseIds)));
@@ -326,6 +340,28 @@ public class CourseService {
 
         return getCourseResponses(coursesPage, avgRatingForCourses);
     }
+    public Page<CourseResponse> searchCoursesBasic(String keyword, Integer page, Integer size) {
+        Specification<Course> spec = Specification.where(null);
+        if (keyword != null && !keyword.trim().isEmpty()) {
+            List<String> courseIdsString = courseElasticService.fuzzySearch(keyword);
+            List<Long> courseIds = courseIdsString.stream().map(Long::parseLong).toList();
+
+            if (courseIds.isEmpty()) {
+                return Page.empty();
+            }
+            spec = spec.and((root, query, cb) -> root.get("id").in(courseIds));
+        }
+
+
+        PageRequest pageRequest = PageRequest.of(page, size);
+        Page<Course> coursesPage = courseRepository.findAll(spec, pageRequest);
+
+        List<Long> ids = coursesPage.getContent().stream().map(Course::getId).toList();
+        Map<Long, Double> avgRatingForCourses = getAverageRatings(ids);
+
+        return getCourseResponses(coursesPage, avgRatingForCourses);
+    }
+
 //    public Page<CourseResponse> searchCourses(FilterRequest filterRequest, Integer page, Integer size) {
 //        String keyword = filterRequest.getKeyword();
 //        String language = filterRequest.getLanguage();

@@ -22,11 +22,10 @@ public class ConversationController {
     ConversationService conversationService;
     @GetMapping("/get-or-create")
     public ApiResponse<ConversationResponse> getOrCreateConversation(
-            @RequestParam String studentEmail,
-            @RequestParam String instructorEmail
+            @RequestParam Long instructorId
     ) {
         return ApiResponse.success(
-                conversationService.getOrCreateConversation(studentEmail, instructorEmail),
+                conversationService.getOrCreateConversation(instructorId),
                 "OK"
         );
     }

@@ -3,6 +3,7 @@ package com.example.courseapplicationproject.service;
 import com.example.courseapplicationproject.dto.request.AdminCreateDTO;
 import com.example.courseapplicationproject.dto.request.AdminUpdateDTO;
 import com.example.courseapplicationproject.dto.response.AdminDTO;
+import com.example.courseapplicationproject.dto.response.InstructorCourseResponse;
 import com.example.courseapplicationproject.dto.response.InstructorListResponse;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -168,5 +169,18 @@ public class InstructorService implements IInstructorService {
 
         user.setIsEnabled(false);
         userRepository.save(user);
+    }
+    public List<InstructorCourseResponse> instructorCourseResponses(){
+        String email = SecurityContextHolder.getContext().getAuthentication().getName();
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND));
+        List<Course> courses = courseRepository.findCourseByAuthorId(user.getId());
+        return courses.stream().map(course -> {
+            return InstructorCourseResponse.builder()
+                    .courseId(course.getId())
+                    .courseName(course.getTitle())
+                    .courseStatus(course.getStatus().name())
+                    .build();
+        }).toList();
     }
 }

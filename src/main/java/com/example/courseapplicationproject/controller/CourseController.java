@@ -40,6 +40,14 @@ public class CourseController {
         Page<CourseResponse> courses = courseService.searchCourses(filterRequest, page, size);
         return ApiResponse.success(courses, "OK");
     }
+    @GetMapping("/search/basic")
+    public ApiResponse<Page<CourseResponse>> searchCoursesBasic(
+            @RequestParam("keyword") String keyword,
+            @RequestParam(defaultValue = "0") Integer page,
+            @RequestParam(defaultValue = "200") Integer size) {
+        Page<CourseResponse> courses = courseService.searchCoursesBasic(keyword, page, size);
+        return ApiResponse.success(courses, "OK");
+    }
     @GetMapping("pending-courses")
     public ApiResponse<List<CourseResponse>> getPendingCourses() {
         return ApiResponse.success(courseService.getAllCoursePending(),"OK");
