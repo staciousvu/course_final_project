@@ -6,6 +6,7 @@ import com.example.courseapplicationproject.service.FavoriteService;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
+import org.springframework.data.domain.Page;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
@@ -16,8 +17,12 @@ public class FavoriteController {
     FavoriteService favoriteService;
 
     @GetMapping
-    public ApiResponse<FavoriteResponse> getFavoritesForUser() {
-        return ApiResponse.success(favoriteService.getFavoritesForUser(), "Lấy danh sách khóa học yêu thích thành công");
+    public ApiResponse<Page<FavoriteResponse.CourseFavorite>> getFavoritesForUser(
+            @RequestParam(required = false) String keyword,
+            @RequestParam(defaultValue = "0") Integer page,
+            @RequestParam(defaultValue = "10") Integer size
+    ) {
+        return ApiResponse.success(favoriteService.getFavoritesForUser(keyword, page, size), "Lấy danh sách khóa học yêu thích thành công");
     }
 
     @PostMapping("/{courseId}")

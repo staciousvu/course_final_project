@@ -12,7 +12,11 @@ import com.example.courseapplicationproject.entity.Notification;
 @Repository
 public interface NotificationRepository extends JpaRepository<Notification, Long> {
 
-    @Query("SELECT n FROM Notification n WHERE NOT EXISTS "
-            + "(SELECT nr FROM NotificationRead nr WHERE nr.notification = n AND nr.user.id = :userId)")
+    @Query("SELECT n FROM Notification n WHERE "
+            + "n.endTime >= CURRENT_TIMESTAMP AND n.isDeleted=false AND "
+            + "NOT EXISTS (SELECT nr FROM NotificationRead nr WHERE nr.notification = n AND nr.user.id = :userId)")
     List<Notification> findUnreadNotifications(@Param("userId") Long userId);
+
+    @Query("SELECT n FROM Notification n WHERE n.endTime >= CURRENT_TIMESTAMP and n.isDeleted=false")
+    List<Notification> findAllActiveNotifications();
 }

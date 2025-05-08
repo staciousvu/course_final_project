@@ -28,4 +28,7 @@ public class CourseDocument {
 
     @Field(type = FieldType.Text, analyzer = "standard")
     String description;
+
+    @Field(type = FieldType.Keyword)
+    String status;
 }

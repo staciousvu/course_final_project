@@ -2,14 +2,14 @@ package com.example.courseapplicationproject.service;
 
 import com.example.courseapplicationproject.dto.request.AdminCreateDTO;
 import com.example.courseapplicationproject.dto.request.AdminUpdateDTO;
-import com.example.courseapplicationproject.dto.response.AdminDTO;
-import com.example.courseapplicationproject.dto.response.InstructorCourseResponse;
-import com.example.courseapplicationproject.dto.response.InstructorListResponse;
+import com.example.courseapplicationproject.dto.response.*;
+import com.example.courseapplicationproject.mapper.CourseMapper;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
-import com.example.courseapplicationproject.dto.response.InfoInstructorByCourseResponse;
 import com.example.courseapplicationproject.entity.Course;
 import com.example.courseapplicationproject.entity.Role;
 import com.example.courseapplicationproject.entity.User;
@@ -41,6 +41,8 @@ public class InstructorService implements IInstructorService {
     CourseReviewRepository courseReviewRepository;
     PasswordEncoder passwordEncoder;
     CloudinaryService cloudinaryService;
+    CourseMapper courseMapper;
+    VoucherService voucherService;
 
     @Override
     public void becomeInstructor() {
@@ -170,17 +172,36 @@ public class InstructorService implements IInstructorService {
         user.setIsEnabled(false);
         userRepository.save(user);
     }
-    public List<InstructorCourseResponse> instructorCourseResponses(){
+    public Page<CourseResponse> instructorCourseResponses(Integer page, Integer size, String keyword){
         String email = SecurityContextHolder.getContext().getAuthentication().getName();
         User user = userRepository.findByEmail(email)
                 .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND));
-        List<Course> courses = courseRepository.findCourseByAuthorId(user.getId());
-        return courses.stream().map(course -> {
-            return InstructorCourseResponse.builder()
-                    .courseId(course.getId())
-                    .courseName(course.getTitle())
-                    .courseStatus(course.getStatus().name())
-                    .build();
-        }).toList();
+        PageRequest pageRequest = PageRequest.of(page, size);
+        Page<Course> coursesPage = courseRepository.findCourseByAuthorIdAndKeyword(user.getId(),keyword,pageRequest);
+        List<Long> courseIds =
+                coursesPage.getContent().stream().map(Course::getId).toList();
+        Map<Long, Double> avgRatingForCourses = getAverageRatings(courseIds);
+        return getCourseResponses(coursesPage, avgRatingForCourses);
+    }
+    private Page<CourseResponse> getCourseResponses(
+            Page<Course> coursesPage, Map<Long, Double> avgRatingForCourses) {
+        return coursesPage.map(course -> {
+            CourseResponse courseResponse = courseMapper.toCourseResponse(course);
+            courseResponse.setStatus(course.getStatus().name());
+            courseResponse.setLevel(course.getLevel().name());
+            courseResponse.setLabel(course.getLabel().name());
+            courseResponse.setCountRating(course.getCountRating());
+            courseResponse.setCountEnrolled(course.getCountEnrolled());
+            courseResponse.setAvgRating(avgRatingForCourses.getOrDefault(course.getId(), 0.0));
+            courseResponse.setAuthorName(
+                    course.getAuthor().getLastName() + " " + course.getAuthor().getFirstName());
+            courseResponse.setAuthorAvatar(course.getAuthor().getAvatar());
+//            courseResponse.setDiscount_price(voucherService.calculateDiscountedPrice(course.getPrice()));
+            return courseResponse;
+        });
+    }
+    public Map<Long, Double> getAverageRatings(List<Long> courseIds) {
+        List<Object[]> results = courseRepository.findAverageRatingsForCourses(courseIds);
+        return results.stream().collect(Collectors.toMap(row -> (Long) row[0], row -> (Double) row[1]));
     }
 }

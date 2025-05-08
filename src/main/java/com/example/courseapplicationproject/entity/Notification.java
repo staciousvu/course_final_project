@@ -27,4 +27,7 @@ public class Notification extends AbstractEntity<Long> {
 
     @Column(name = "end_at")
     LocalDateTime endTime;
+
+    @Column(name="is_deleted")
+    Boolean isDeleted;
 }

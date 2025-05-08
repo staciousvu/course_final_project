@@ -25,6 +25,16 @@ public class CartController {
         cartService.addCourseToCart(courseId);
         return ApiResponse.success(null, "Course added to cart successfully");
     }
+    @PutMapping("/to-favorite/{courseId}")
+    public ApiResponse<Void> moveCartToFavorite(@PathVariable Long courseId) {
+        cartService.moveCourseFromCartToFavorite(courseId);
+        return ApiResponse.success(null, "Moved to favorite successfully.");
+    }
+    @PutMapping("/to-cart/{courseId}")
+    public ApiResponse<Void> moveFavoriteToCart(@PathVariable Long courseId) {
+        cartService.moveCourseFromFavoriteToCart(courseId);
+        return ApiResponse.success(null, "Moved to cart successfully.");
+    }
 
     @DeleteMapping("/remove/{courseId}")
     public ApiResponse<Void> removeCourseFromCart(@PathVariable Long courseId) {

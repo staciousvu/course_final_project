@@ -1,13 +1,11 @@
 package com.example.courseapplicationproject.controller;
 
-import com.example.courseapplicationproject.dto.response.AdminDTO;
-import com.example.courseapplicationproject.dto.response.ApiResponse;
-import com.example.courseapplicationproject.dto.response.InstructorCourseResponse;
-import com.example.courseapplicationproject.dto.response.InstructorListResponse;
+import com.example.courseapplicationproject.dto.response.*;
 import com.example.courseapplicationproject.service.InstructorService;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
+import org.springframework.data.domain.Page;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -26,8 +24,12 @@ public class InstructorController {
         return ApiResponse.success(instructorService.getAllInstructor(keyword),"OK");
     }
     @GetMapping("/my-courses")
-    public ApiResponse<List<InstructorCourseResponse>> getMyCourses() {
-        return ApiResponse.success(instructorService.instructorCourseResponses(),"OK");
+    public ApiResponse<Page<CourseResponse>> getMyCourses(
+            @RequestParam(defaultValue = "0") Integer page,
+            @RequestParam(defaultValue = "10") Integer size,
+            @RequestParam String keyword
+    ) {
+        return ApiResponse.success(instructorService.instructorCourseResponses(page, size, keyword),"OK");
     }
 
 }

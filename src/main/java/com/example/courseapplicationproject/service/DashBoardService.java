@@ -39,12 +39,18 @@ public class DashBoardService {
             return enrollRepository.findStudentEnrollmentsByInstructorId(user.getId(), search, status, pageable);
         }
     }
-    public List<PerformanceOverviewProjection> getTeacherRevenue(int days) {
-        String email= SecurityContextHolder.getContext().getAuthentication().getName();
+    public List<PerformanceOverviewProjection> getTeacherRevenue(int days, int months, Long courseId) {
+        String email = SecurityContextHolder.getContext().getAuthentication().getName();
         User user = userRepository.findByEmail(email)
                 .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND));
-        LocalDateTime startDate = LocalDate.now().minusDays(days).atStartOfDay();
-        return enrollRepository.getTeacherRevenueLastXDays(user.getId(), startDate);
+
+        if (months > 0) {
+            return enrollRepository.getRevenueByMonth(user.getId(), courseId, months);
+        }
+
+        if (days <= 0) days = 7;
+        return enrollRepository.getRevenueByDay(user.getId(), courseId, days);
     }
+
 
 }

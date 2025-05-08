@@ -4,7 +4,12 @@ import java.time.LocalDateTime;
 import java.util.List;
 import java.util.UUID;
 
+import com.example.courseapplicationproject.dto.response.PaymentResponseDTO;
 import com.example.courseapplicationproject.repository.EnrollRepository;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 
@@ -32,6 +37,39 @@ public class PaymentService {
     CourseRepository courseRepository;
     PaymentRepository paymentRepository;
     EnrollRepository enrollRepository;
+    VoucherService voucherService;
+    public Page<PaymentResponseDTO> getPayments(String email,Integer page,Integer size) {
+        Page<Payment> payments;
+        PageRequest pageRequest = PageRequest.of(page, size, Sort.by("createdAt").descending());
+
+        if (email != null && !email.trim().isEmpty()) {
+            payments = paymentRepository.findByUserEmailContainingIgnoreCase(email, pageRequest);
+        } else {
+            payments = paymentRepository.findAll(pageRequest);
+        }
+
+        return payments.map(payment -> PaymentResponseDTO.builder()
+                .id(payment.getId())
+                .transactionId(payment.getTransactionId())
+                .email(payment.getUser().getEmail())
+                .fullName(payment.getUser().getFirstName()+" "+payment.getUser().getLastName())
+                .avatar(payment.getUser().getAvatar())
+                .paymentMethod(payment.getPaymentMethod().name())
+                .paymentStatus(payment.getPaymentStatus().name())
+                .expiredTime(payment.getExpiredTime())
+                .totalAmount(payment.getTotalAmount())
+                .paymentInformation(payment.getPaymentInformation())
+                .paymentDetails(payment.getPaymentDetails().stream().map(detail ->
+                        PaymentResponseDTO.Detail.builder()
+                                .courseId(detail.getCourse().getId())
+                                .courseName(detail.getCourse().getTitle())
+                                .urlImage(detail.getCourse().getThumbnail())
+                                .price(voucherService.calculateDiscountedPrice(detail.getPrice()))
+                                .build()
+                ).toList())
+                .build());
+    }
+
 
     public Payment createPayment(PaymentRequest paymentRequest) {
         String transactionId = UUID.randomUUID().toString();

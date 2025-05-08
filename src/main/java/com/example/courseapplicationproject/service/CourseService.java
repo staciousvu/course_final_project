@@ -1,5 +1,6 @@
 package com.example.courseapplicationproject.service;
 
+import java.math.BigDecimal;
 import java.util.*;
 import java.util.concurrent.ExecutionException;
 import java.util.stream.Collectors;
@@ -41,7 +42,6 @@ public class CourseService {
     CourseElasticService courseElasticService;
     ActivityService activityService;
     CartRepository cartRepository;
-    CartItemRepository cartItemRepository;
     VoucherService voucherService;
     ProgressRepository progressRepository;
     CourseContentService courseContentService;
@@ -71,14 +71,14 @@ public class CourseService {
                 })
                 .toList();
         enrollRepository.saveAll(enrollments);
-        Cart cart = cartRepository.findByUser(user)
-                .orElseThrow(() -> new AppException(ErrorCode.CART_NOT_FOUND));
+        cartRepository.deleteByUserId(user.getId());
 
-        List<Long> courseIds = paymentDetails.stream()
-                .map(paymentDetail -> paymentDetail.getCourse().getId())
-                .toList();
-
-        cartItemRepository.deleteByCartAndCourseIdIn(cart, courseIds);
+    }
+    public void removeCourse_activeFalse(Long courseId){
+        Course course = courseRepository.findById(courseId)
+                .orElseThrow(()-> new AppException(ErrorCode.COURSE_NOT_FOUND));
+        course.setIsActive(Course.IsActive.INACTIVE);
+        courseRepository.save(course);
     }
     public CourseDetailResponse getCourseDetail(Long courseId){
         Course course = courseRepository.findById(courseId)
@@ -173,6 +173,7 @@ public class CourseService {
                 .language(course.getLanguage())
                 .description(course.getDescription())
                 .level(course.getLevel().name())
+                .status(course.getStatus().name())
                 .previewUrl(course.getThumbnail())
                 .videoUrl(course.getPreviewVideo())
                 .avgRating(courseRepository.findAverageRatingByCourseId(courseId))
@@ -228,7 +229,7 @@ public class CourseService {
 
         return secureUrl;
     }
-    public void uploadPreviewVideo(Long courseId, MultipartFile previewVideo) {
+    public String uploadPreviewVideo(Long courseId, MultipartFile previewVideo) {
         Course course = courseRepository.findById(courseId)
                 .orElseThrow(() -> new AppException(ErrorCode.COURSE_NOT_FOUND));
 
@@ -238,14 +239,16 @@ public class CourseService {
         if (!course.getAuthor().getEmail().equals(email) && !UserUtils.isAdmin(user)) {
             throw new AppException(ErrorCode.ACCESS_DENIED);
         }
-
+        String rtvideo;
         try {
             Map objects = cloudinaryService.uploadVideoAuto(previewVideo).get();
             course.setPreviewVideo(objects.get("secure_url").toString());
+            rtvideo = objects.get("secure_url").toString();
         } catch (InterruptedException | ExecutionException e) {
             throw new RuntimeException("Error uploading video", e);
         }
         courseRepository.save(course);
+        return rtvideo;
     }
     SearchHistoryRepository searchHistoryRepository;
     public Page<CourseResponse> searchCourses(FilterRequest filterRequest, Integer page, Integer size) {
@@ -418,8 +421,13 @@ public class CourseService {
             courseResponse.setAvgRating(avgRatingForCourses.getOrDefault(course.getId(), 0.0));
             courseResponse.setAuthorName(
                     course.getAuthor().getLastName() + " " + course.getAuthor().getFirstName());
+            courseResponse.setAuthorEmail(course.getAuthor().getEmail());
             courseResponse.setAuthorAvatar(course.getAuthor().getAvatar());
-            courseResponse.setDiscount_price(voucherService.calculateDiscountedPrice(course.getPrice()));
+            if (course.getStatus().name().equals("ACCEPTED")) {
+                courseResponse.setDiscount_price(voucherService.calculateDiscountedPrice(course.getPrice()));
+            }else {
+                courseResponse.setDiscount_price(BigDecimal.ZERO);
+            }
             return courseResponse;
         });
     }
@@ -567,9 +575,11 @@ public class CourseService {
         User user = userRepository.findByEmail(email).orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND));
         boolean isEnrolled = enrollRepository.existsByCourseIdAndUserId(courseId, user.getId());
         boolean isAdmin = UserUtils.isAdmin(user);
+
         Course course =
                 courseRepository.findById(courseId).orElseThrow(() -> new AppException(ErrorCode.COURSE_NOT_FOUND));
-        ProgressResponse progressResponse = progressService.getProgressForCourse(course,user.getId());
+        boolean isAuthor = Objects.equals(user.getId(), course.getAuthor().getId());
+                ProgressResponse progressResponse = progressService.getProgressForCourse(course,user.getId());
         List<Object[]> progressList = progressRepository.findLectureProgressByCourseIdAndUserId(courseId, user.getId());
         Map<Long, Boolean> progressMap = progressList.stream()
                 .collect(Collectors.toMap(row -> (Long) row[0], row -> (Boolean) row[1]));
@@ -600,7 +610,7 @@ public class CourseService {
                                                 .displayOrder(lecture.getDisplayOrder())
                                                 .isCompleted(progressMap.getOrDefault(lecture.getId(), false))
                                                 .type(lecture.getType() != null ? lecture.getType().name() : null)
-                                                .contentUrl((isEnrolled || isAdmin) ? lecture.getContentUrl() : null)
+                                                .contentUrl((isEnrolled || isAdmin || isAuthor) ? lecture.getContentUrl() : null)
                                                 .duration(lecture.getDuration() != null ? lecture.getDuration() : 0)
                                                 .build())
                                         .collect(Collectors.toList()))
@@ -608,86 +618,74 @@ public class CourseService {
                         .collect(Collectors.toList()))
                 .build();
     }
-    public List<CourseResponse> getAllCoursePending(){
+    public Page<CourseResponse> getAllCourseStatus(Course.CourseStatus status,String keyword,Integer page,Integer size){
         Sort sort = Sort.by(Sort.Direction.DESC,"createdAt");
-        List<Course> courses = courseRepository.findCourseByStatus(Course.CourseStatus.PENDING,sort);
+        PageRequest pageRequest = PageRequest.of(page,size,sort);
+        Page<Course> courses = courseRepository.findCourseByStatus(status,keyword,pageRequest);
         List<Long> courseIds = courses.stream().map(Course::getId).toList();
         Map<Long, Double> avgRatingForCourses = getAverageRatings(courseIds);
-        return courses.stream()
-                .map(course -> {
-                    CourseResponse courseResponse = courseMapper.toCourseResponse(course);
-                    courseResponse.setLevel(course.getLevel().name());
-                    courseResponse.setLabel(course.getLabel().name());
-                    courseResponse.setCountEnrolled(course.getCountEnrolled() != null ? course.getCountEnrolled() : 0);
-                    courseResponse.setStatus(course.getStatus().name());
-                    courseResponse.setCountRating(course.getCountRating() != null ? course.getCountRating() : 0);
-                    courseResponse.setAvgRating(avgRatingForCourses.getOrDefault(course.getId(), 0.0));
-                    courseResponse.setAuthorName(course.getAuthor().getLastName() + " "
-                            + course.getAuthor().getFirstName());
-                    return courseResponse;
-                })
-                .collect(Collectors.toList());
+        return getCourseResponses(courses, avgRatingForCourses);
     }
-    public List<CourseResponse> getAllCourseAccept(){
-        Sort sort = Sort.by(Sort.Direction.DESC,"createdAt");
-        List<Course> courses = courseRepository.findCourseByStatus(Course.CourseStatus.ACCEPTED,sort);
-        List<Long> courseIds = courses.stream().map(Course::getId).toList();
-        Map<Long, Double> avgRatingForCourses = getAverageRatings(courseIds);
-        return courses.stream()
-                .map(course -> {
-                    CourseResponse courseResponse = courseMapper.toCourseResponse(course);
-                    courseResponse.setLevel(course.getLevel().name());
-                    courseResponse.setLabel(course.getLabel().name());
-                    courseResponse.setCountEnrolled(course.getCountEnrolled() != null ? course.getCountEnrolled() : 0);
-                    courseResponse.setStatus(course.getStatus().name());
-                    courseResponse.setCountRating(course.getCountRating() != null ? course.getCountRating() : 0);
-                    courseResponse.setAvgRating(avgRatingForCourses.getOrDefault(course.getId(), 0.0));
-                    courseResponse.setAuthorName(course.getAuthor().getLastName() + " "
-                            + course.getAuthor().getFirstName());
-                    return courseResponse;
-                })
-                .collect(Collectors.toList());
-    }
-    public List<CourseResponse> getAllCourseReject(){
-        Sort sort = Sort.by(Sort.Direction.DESC,"createdAt");
-        List<Course> courses = courseRepository.findCourseByStatus(Course.CourseStatus.REJECTED,sort);
-        List<Long> courseIds = courses.stream().map(Course::getId).toList();
-        Map<Long, Double> avgRatingForCourses = getAverageRatings(courseIds);
-        return courses.stream()
-                .map(course -> {
-                    CourseResponse courseResponse = courseMapper.toCourseResponse(course);
-                    courseResponse.setLevel(course.getLevel().name());
-                    courseResponse.setLabel(course.getLabel().name());
-                    courseResponse.setCountEnrolled(course.getCountEnrolled() != null ? course.getCountEnrolled() : 0);
-                    courseResponse.setStatus(course.getStatus().name());
-                    courseResponse.setCountRating(course.getCountRating() != null ? course.getCountRating() : 0);
-                    courseResponse.setAvgRating(avgRatingForCourses.getOrDefault(course.getId(), 0.0));
-                    courseResponse.setAuthorName(course.getAuthor().getLastName() + " "
-                            + course.getAuthor().getFirstName());
-                    return courseResponse;
-                })
-                .collect(Collectors.toList());
-    }
-    public List<CourseResponse> getAllCourseDraft(){
-        Sort sort = Sort.by(Sort.Direction.DESC,"createdAt");
-        List<Course> courses = courseRepository.findCourseByStatus(Course.CourseStatus.DRAFT,sort);
-        List<Long> courseIds = courses.stream().map(Course::getId).toList();
-        Map<Long, Double> avgRatingForCourses = getAverageRatings(courseIds);
-        return courses.stream()
-                .map(course -> {
-                    CourseResponse courseResponse = courseMapper.toCourseResponse(course);
-                    courseResponse.setLevel(course.getLevel().name());
-                    courseResponse.setLabel(course.getLabel().name());
-                    courseResponse.setCountEnrolled(course.getCountEnrolled() != null ? course.getCountEnrolled() : 0);
-                    courseResponse.setStatus(course.getStatus().name());
-                    courseResponse.setCountRating(course.getCountRating() != null ? course.getCountRating() : 0);
-                    courseResponse.setAvgRating(avgRatingForCourses.getOrDefault(course.getId(), 0.0));
-                    courseResponse.setAuthorName(course.getAuthor().getLastName() + " "
-                            + course.getAuthor().getFirstName());
-                    return courseResponse;
-                })
-                .collect(Collectors.toList());
-    }
+//    public List<CourseResponse> getAllCourseAccept(){
+//        Sort sort = Sort.by(Sort.Direction.DESC,"createdAt");
+//        List<Course> courses = courseRepository.findCourseByStatus(Course.CourseStatus.ACCEPTED,sort);
+//        List<Long> courseIds = courses.stream().map(Course::getId).toList();
+//        Map<Long, Double> avgRatingForCourses = getAverageRatings(courseIds);
+//        return courses.stream()
+//                .map(course -> {
+//                    CourseResponse courseResponse = courseMapper.toCourseResponse(course);
+//                    courseResponse.setLevel(course.getLevel().name());
+//                    courseResponse.setLabel(course.getLabel().name());
+//                    courseResponse.setCountEnrolled(course.getCountEnrolled() != null ? course.getCountEnrolled() : 0);
+//                    courseResponse.setStatus(course.getStatus().name());
+//                    courseResponse.setCountRating(course.getCountRating() != null ? course.getCountRating() : 0);
+//                    courseResponse.setAvgRating(avgRatingForCourses.getOrDefault(course.getId(), 0.0));
+//                    courseResponse.setAuthorName(course.getAuthor().getLastName() + " "
+//                            + course.getAuthor().getFirstName());
+//                    return courseResponse;
+//                })
+//                .collect(Collectors.toList());
+//    }
+//    public List<CourseResponse> getAllCourseReject(){
+//        Sort sort = Sort.by(Sort.Direction.DESC,"createdAt");
+//        List<Course> courses = courseRepository.findCourseByStatus(Course.CourseStatus.REJECTED,sort);
+//        List<Long> courseIds = courses.stream().map(Course::getId).toList();
+//        Map<Long, Double> avgRatingForCourses = getAverageRatings(courseIds);
+//        return courses.stream()
+//                .map(course -> {
+//                    CourseResponse courseResponse = courseMapper.toCourseResponse(course);
+//                    courseResponse.setLevel(course.getLevel().name());
+//                    courseResponse.setLabel(course.getLabel().name());
+//                    courseResponse.setCountEnrolled(course.getCountEnrolled() != null ? course.getCountEnrolled() : 0);
+//                    courseResponse.setStatus(course.getStatus().name());
+//                    courseResponse.setCountRating(course.getCountRating() != null ? course.getCountRating() : 0);
+//                    courseResponse.setAvgRating(avgRatingForCourses.getOrDefault(course.getId(), 0.0));
+//                    courseResponse.setAuthorName(course.getAuthor().getLastName() + " "
+//                            + course.getAuthor().getFirstName());
+//                    return courseResponse;
+//                })
+//                .collect(Collectors.toList());
+//    }
+//    public List<CourseResponse> getAllCourseDraft(){
+//        Sort sort = Sort.by(Sort.Direction.DESC,"createdAt");
+//        List<Course> courses = courseRepository.findCourseByStatus(Course.CourseStatus.DRAFT,sort);
+//        List<Long> courseIds = courses.stream().map(Course::getId).toList();
+//        Map<Long, Double> avgRatingForCourses = getAverageRatings(courseIds);
+//        return courses.stream()
+//                .map(course -> {
+//                    CourseResponse courseResponse = courseMapper.toCourseResponse(course);
+//                    courseResponse.setLevel(course.getLevel().name());
+//                    courseResponse.setLabel(course.getLabel().name());
+//                    courseResponse.setCountEnrolled(course.getCountEnrolled() != null ? course.getCountEnrolled() : 0);
+//                    courseResponse.setStatus(course.getStatus().name());
+//                    courseResponse.setCountRating(course.getCountRating() != null ? course.getCountRating() : 0);
+//                    courseResponse.setAvgRating(avgRatingForCourses.getOrDefault(course.getId(), 0.0));
+//                    courseResponse.setAuthorName(course.getAuthor().getLastName() + " "
+//                            + course.getAuthor().getFirstName());
+//                    return courseResponse;
+//                })
+//                .collect(Collectors.toList());
+//    }
     public List<CourseResponse> getAllCourseAccept(List<String> sortBy, List<String> sortDirection, int page, int size) {
         if (sortBy == null || sortBy.isEmpty()) {
             sortBy = List.of("createdAt"); // Mặc định sắp xếp theo createdAt
@@ -731,6 +729,8 @@ public class CourseService {
                     courseResponse.setStatus(course.getStatus().name());
                     courseResponse.setCountRating(course.getCountRating() != null ? course.getCountRating() : 0);
                     courseResponse.setAvgRating(avgRatingForCourses.getOrDefault(course.getId(), 0.0));
+                    courseResponse.setAuthorEmail(course.getAuthor().getEmail());
+                    courseResponse.setAuthorAvatar(course.getAuthor().getAvatar());
                     courseResponse.setAuthorName(course.getAuthor().getLastName() + " " + course.getAuthor().getFirstName());
                     return courseResponse;
                 })

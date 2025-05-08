@@ -3,6 +3,7 @@ package com.example.courseapplicationproject.dto.projection;
 import java.time.LocalDateTime;
 
 public interface StudentEnrollmentProjection {
+    String getThumbnail();
     Long getUserId();
     String getFullName();
     String getEmail();

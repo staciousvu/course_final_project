@@ -20,6 +20,7 @@ public class CourseDTO {
     String description;
     String language;
     String level;
+    String status;
     Long categoryId;
     String previewUrl;
     String videoUrl;

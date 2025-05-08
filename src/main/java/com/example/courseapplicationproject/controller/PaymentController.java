@@ -2,9 +2,11 @@ package com.example.courseapplicationproject.controller;
 
 import java.io.IOException;
 
+import com.example.courseapplicationproject.dto.response.PaymentResponseDTO;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 
+import org.springframework.data.domain.Page;
 import org.springframework.web.bind.annotation.*;
 
 import com.example.courseapplicationproject.dto.request.PaymentRequest;
@@ -53,5 +55,14 @@ public class PaymentController {
             paymentService.updatePaymentStatusToFailed(transactionId);
             response.sendRedirect("http://localhost:4200/payment-failed");
         }
+    }
+    @GetMapping
+    public ApiResponse<Page<PaymentResponseDTO>> getPayments(
+            @RequestParam(required = false) String email,
+            @RequestParam(defaultValue = "0") Integer page,
+            @RequestParam(defaultValue = "10") Integer size
+    ) {
+        Page<PaymentResponseDTO> result = paymentService.getPayments(email, page, size);
+        return ApiResponse.success(result, "Payments fetched successfully");
     }
 }

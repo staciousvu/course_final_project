@@ -23,10 +23,11 @@ public class CourseElasticService {
 
     public List<String> fuzzySearch(String keyword) {
         String normalizedKeyword = keyword.toLowerCase();
-        Criteria criteria = new Criteria("title")
-                .fuzzy(normalizedKeyword)
+        Criteria fuzzyCriteria = new Criteria("title").fuzzy(normalizedKeyword)
                 .or(new Criteria("description").fuzzy(normalizedKeyword))
                 .or(new Criteria("subtitle").fuzzy(normalizedKeyword));
+
+        Criteria criteria = fuzzyCriteria.and(new Criteria("status").is("accepted"));
 
         CriteriaQuery query = new CriteriaQuery(criteria);
 

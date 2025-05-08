@@ -24,6 +24,7 @@ import com.example.courseapplicationproject.repository.UserRepository;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.transaction.annotation.Transactional;
 
 @Service
 @FieldDefaults(makeFinal = true, level = AccessLevel.PRIVATE)
@@ -40,6 +41,7 @@ public class NotificationService {
                 .message(request.getMessage())
                 .startTime(request.getStartTime() != null ? request.getStartTime() : LocalDateTime.now())
                 .endTime(request.getEndTime())
+                .isDeleted(false)
                 .build();
         return notificationRepository.save(notification);
     }
@@ -83,12 +85,24 @@ public class NotificationService {
                         .build())
                 .collect(Collectors.toList());
     }
+    public List<NotificationResponse> getNotificationsAdmin(){
+        List<Notification> notifications = notificationRepository.findAllActiveNotifications();
+        return notifications.stream()
+                .map(notification -> NotificationResponse.builder()
+                        .id(notification.getId())
+                        .title(notification.getTitle())
+                        .message(notification.getMessage())
+                        .startTime(notification.getStartTime())
+                        .endTime(notification.getEndTime())
+                        .build())
+                .collect(Collectors.toList());
+    }
 
+    @Transactional
     public void deleteNotification(Long notificationId) {
-        if (!notificationRepository.existsById(notificationId)) {
-            throw new AppException(ErrorCode.NOTIFICATION_NOT_FOUND);
-        }
-        notificationReadRepository.deleteByNotificationId(notificationId);
-        notificationRepository.deleteById(notificationId);
+        Notification notification = notificationRepository.findById(notificationId)
+                        .orElseThrow(() -> new AppException(ErrorCode.NOTIFICATION_NOT_FOUND));
+        notification.setIsDeleted(true);
+        notificationRepository.save(notification);
     }
 }

@@ -41,11 +41,12 @@ public class LectureService {
         Lecture lecture = Lecture.builder()
                 .title(request.getTitle())
                 .displayOrder(request.getDisplayOrder() != null ? request.getDisplayOrder() : 0)
+                .duration(0.0)
                 .section(section)
                 .build();
 
-        lectureRepository.save(lecture);
-        return mapToResponse(lecture);
+        Lecture newLecture =  lectureRepository.save(lecture);
+        return mapToResponse(newLecture);
     }
     public void updateLecture(Long lectureId,String title){
         Lecture lecture = lectureRepository.findById(lectureId)

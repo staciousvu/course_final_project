@@ -1,13 +1,5 @@
 package com.example.courseapplicationproject.service;
 
-import java.util.*;
-import java.util.stream.Collectors;
-
-import lombok.AccessLevel;
-import lombok.experimental.FieldDefaults;
-import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.stereotype.Service;
-
 import com.example.courseapplicationproject.dto.response.CartResponse;
 import com.example.courseapplicationproject.dto.response.CourseResponse;
 import com.example.courseapplicationproject.entity.*;
@@ -15,9 +7,16 @@ import com.example.courseapplicationproject.exception.AppException;
 import com.example.courseapplicationproject.exception.ErrorCode;
 import com.example.courseapplicationproject.mapper.CourseMapper;
 import com.example.courseapplicationproject.repository.*;
-
+import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
+import lombok.experimental.FieldDefaults;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import java.util.*;
+import java.util.stream.Collectors;
 
 @Service
 @FieldDefaults(makeFinal = true, level = AccessLevel.PRIVATE)
@@ -26,33 +25,77 @@ import lombok.extern.slf4j.Slf4j;
 public class CartService {
     LectureRepository lectureRepository;
     CartRepository cartRepository;
-    CartItemRepository cartItemRepository;
     UserRepository userRepository;
     CourseRepository courseRepository;
     CourseMapper courseMapper;
     VoucherService voucherService;
+    FavoriteRepository favoriteRepository;
+    public void moveCourseFromFavoriteToCart(Long courseId) {
+        String email = SecurityContextHolder.getContext().getAuthentication().getName();
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND));
+        Course course = courseRepository.findById(courseId)
+                .orElseThrow(() -> new AppException(ErrorCode.COURSE_NOT_FOUND));
+
+        // 1. Xoá khỏi Favorite nếu có
+        favoriteRepository.findByUserIdAndCourseId(user.getId(), courseId)
+                .ifPresent(favoriteRepository::delete);
+
+        // 2. Thêm vào Cart nếu chưa có
+        boolean exists = cartRepository.existsByUserIdAndCourseId(user.getId(), courseId);
+        if (!exists) {
+            Cart cart = Cart.builder()
+                    .user(user)
+                    .course(course)
+                    .build();
+            cartRepository.save(cart);
+        }
+    }
+
+    public void moveCourseFromCartToFavorite(Long courseId) {
+        String email = SecurityContextHolder.getContext().getAuthentication().getName();
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND));
+        Course course = courseRepository.findById(courseId)
+                .orElseThrow(() -> new AppException(ErrorCode.COURSE_NOT_FOUND));
+
+        // 1. Xoá khỏi giỏ hàng nếu có
+        cartRepository.findByUserIdAndCourseId(user.getId(), courseId)
+                .ifPresent(cartRepository::delete);
+
+        // 2. Thêm vào Favorite nếu chưa có
+        boolean exists = favoriteRepository.existsByUserIdAndCourseId(user.getId(), courseId);
+        if (!exists) {
+            Favorite favorite = Favorite.builder()
+                    .user(user)
+                    .course(course)
+                    .build();
+            favoriteRepository.save(favorite);
+        }
+    }
 
     public CartResponse getCart4User() {
         String email = SecurityContextHolder.getContext().getAuthentication().getName();
-        User user = userRepository.findByEmail(email).orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND));
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND));
 
-        Optional<Cart> cart = cartRepository.findByUserId(user.getId());
-        if (cart.isEmpty())
+        List<Cart> cartItems = cartRepository.findAllByUserId(user.getId());
+
+        if (cartItems.isEmpty()) {
             return CartResponse.builder()
                     .cartItemResponses(new ArrayList<>())
                     .build();
+        }
 
-        List<CartResponse.CartItemResponse> cartItemResponseList = new ArrayList<>();
-        Set<CartItem> cartItems = cart.get().getCartItems();
-
-        List<Long> courseIds =
-                cartItems.stream().map(cartItem -> cartItem.getCourse().getId()).toList();
+        List<Long> courseIds = cartItems.stream()
+                .map(cart -> cart.getCourse().getId())
+                .toList();
 
         Map<Long, Double> avgRatingForCourses = getAverageRatings(courseIds);
         Map<Long, Integer> countRatingForCourses = getCountRatings(courseIds);
 
-        cartItems.forEach(cartItem -> {
-            Course course = cartItem.getCourse();
+        List<CartResponse.CartItemResponse> cartItemResponses = cartItems.stream().map(cart -> {
+            Course course = cart.getCourse();
             CourseResponse courseResponse = courseMapper.toCourseResponse(course);
 
             courseResponse.setLevel(course.getLevel().name());
@@ -62,8 +105,7 @@ public class CartService {
             courseResponse.setDiscount_price(voucherService.calculateDiscountedPrice(course.getPrice()));
             courseResponse.setAuthorAvatar(course.getAuthor().getAvatar());
             courseResponse.setPreviewVideo(course.getPreviewVideo());
-            User author = course.getAuthor();
-            courseResponse.setAuthorName(author.getLastName() + " " + author.getFirstName());
+            courseResponse.setAuthorName(course.getAuthor().getLastName() + " " + course.getAuthor().getFirstName());
 
             int totalLectures = 0;
             double totalHour = 0.0;
@@ -74,57 +116,44 @@ public class CartService {
                         .sum();
             }
 
-            CartResponse.CartItemResponse cartItemResponse = new CartResponse.CartItemResponse();
-            cartItemResponse.setTotalHour(totalHour);
-            cartItemResponse.setTotalLectures(totalLectures);
-            cartItemResponse.setCourseResponse(courseResponse);
-
-            cartItemResponseList.add(cartItemResponse);
-        });
+            return CartResponse.CartItemResponse.builder()
+                    .courseResponse(courseResponse)
+                    .totalHour(totalHour)
+                    .totalLectures(totalLectures)
+                    .build();
+        }).toList();
 
         return CartResponse.builder()
-                .cartItemResponses(cartItemResponseList)
+                .cartItemResponses(cartItemResponses)
                 .build();
     }
 
+    @Transactional
     public void addCourseToCart(Long courseId) {
         String email = SecurityContextHolder.getContext().getAuthentication().getName();
-        User user = userRepository.findByEmail(email).orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND));
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND));
+        Course course = courseRepository.findById(courseId)
+                .orElseThrow(() -> new AppException(ErrorCode.COURSE_NOT_FOUND));
 
-        Course course =
-                courseRepository.findById(courseId).orElseThrow(() -> new AppException(ErrorCode.COURSE_NOT_FOUND));
-
-        Cart cart = cartRepository.findByUserId(user.getId()).orElseGet(() -> {
-            Cart newCart = Cart.builder().user(user).cartItems(new HashSet<>()).build();
-            return cartRepository.save(newCart);
-        });
-
-        boolean exists = cart.getCartItems().stream()
-                .anyMatch(item -> item.getCourse().getId().equals(courseId));
-
+        boolean exists = cartRepository.existsByUserIdAndCourseId(user.getId(), courseId);
         if (!exists) {
-            CartItem cartItem = CartItem.builder().cart(cart).course(course).build();
-            cart.getCartItems().add(cartItem);
+            Cart cart = Cart.builder()
+                    .user(user)
+                    .course(course)
+                    .build();
             cartRepository.save(cart);
+            favoriteRepository.deleteByUserIdAndCourseId(user.getId(),courseId);
         }
     }
 
     public void removeCourseFromCart(Long courseId) {
         String email = SecurityContextHolder.getContext().getAuthentication().getName();
-        User user = userRepository.findByEmail(email).orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND));
-        Course course =
-                courseRepository.findById(courseId).orElseThrow(() -> new AppException(ErrorCode.COURSE_NOT_FOUND));
-        cartRepository.findByUserId(user.getId()).ifPresent(cart -> {
-            CartItem cartItem = cart.getCartItems().stream()
-                    .filter(item -> item.getCourse().getId().equals(courseId))
-                    .findFirst()
-                    .orElse(null);
-            if (cartItem != null) {
-                cart.getCartItems().remove(cartItem);
-                cartItemRepository.delete(cartItem);
-                cartRepository.save(cart);
-            }
-        });
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND));
+
+        cartRepository.findByUserIdAndCourseId(user.getId(), courseId)
+                .ifPresent(cartRepository::delete);
     }
 
     public Map<Long, Double> getAverageRatings(List<Long> courseIds) {

@@ -12,5 +12,5 @@ import java.util.List;
 @Repository
 public interface CourseContentRepository extends JpaRepository<CourseContent,Long> {
     List<CourseContent> findByCourseIdOrderByIdAsc(Long courseId);
-
+    int deleteAllByCourseId(Long courseId);
 }

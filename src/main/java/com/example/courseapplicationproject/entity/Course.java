@@ -105,9 +105,6 @@ public class Course extends AbstractEntity<Long> {
     @JsonIgnore
     Set<Section> sections = new HashSet<>();
 
-    @OneToMany(fetch = FetchType.LAZY, mappedBy = "course")
-    @JsonIgnore
-    Set<CartItem> cartItems = new HashSet<>();
 
     @OneToMany(fetch = FetchType.LAZY, mappedBy = "course")
     @JsonIgnore

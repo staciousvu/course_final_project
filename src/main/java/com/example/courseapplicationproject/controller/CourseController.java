@@ -20,6 +20,11 @@ import java.util.List;
 @RequiredArgsConstructor
 public class CourseController {
     CourseService courseService;
+    @PostMapping("/remove/{courseId}")
+    public ApiResponse<Void> removeCourse(@PathVariable Long courseId) {
+        courseService.removeCourse_activeFalse(courseId);
+        return ApiResponse.success(null,"OK");
+    }
     @GetMapping("/courses/accepted")
     public ApiResponse<List<CourseResponse>> getAllCourseAccept(
             @RequestParam(required = false) List<String> sortBy,
@@ -49,20 +54,36 @@ public class CourseController {
         return ApiResponse.success(courses, "OK");
     }
     @GetMapping("pending-courses")
-    public ApiResponse<List<CourseResponse>> getPendingCourses() {
-        return ApiResponse.success(courseService.getAllCoursePending(),"OK");
+    public ApiResponse<Page<CourseResponse>> getPendingCourses(
+            @RequestParam("keyword") String keyword,
+            @RequestParam(defaultValue = "0") Integer page,
+            @RequestParam(defaultValue = "200") Integer size
+    ) {
+        return ApiResponse.success(courseService.getAllCourseStatus(Course.CourseStatus.PENDING,keyword, page, size),"OK");
     }
     @GetMapping("accept-courses")
-    public ApiResponse<List<CourseResponse>> getAcceptCourses() {
-        return ApiResponse.success(courseService.getAllCourseAccept(),"OK");
+    public ApiResponse<Page<CourseResponse>> getAcceptCourses(
+            @RequestParam("keyword") String keyword,
+            @RequestParam(defaultValue = "0") Integer page,
+            @RequestParam(defaultValue = "200") Integer size
+    ) {
+        return ApiResponse.success(courseService.getAllCourseStatus(Course.CourseStatus.ACCEPTED,keyword, page, size),"OK");
     }
     @GetMapping("reject-courses")
-    public ApiResponse<List<CourseResponse>> getRejectCourses() {
-        return ApiResponse.success(courseService.getAllCourseReject(),"OK");
+    public ApiResponse<Page<CourseResponse>> getRejectCourses(
+            @RequestParam("keyword") String keyword,
+            @RequestParam(defaultValue = "0") Integer page,
+            @RequestParam(defaultValue = "200") Integer size
+    ) {
+        return ApiResponse.success(courseService.getAllCourseStatus(Course.CourseStatus.REJECTED,keyword, page, size),"OK");
     }
     @GetMapping("draft-courses")
-    public ApiResponse<List<CourseResponse>> getDraftCourses() {
-        return ApiResponse.success(courseService.getAllCourseDraft(),"OK");
+    public ApiResponse<Page<CourseResponse>> getDraftCourses(
+            @RequestParam("keyword") String keyword,
+            @RequestParam(defaultValue = "0") Integer page,
+            @RequestParam(defaultValue = "200") Integer size
+    ) {
+        return ApiResponse.success(courseService.getAllCourseStatus(Course.CourseStatus.DRAFT,keyword, page, size),"OK");
     }
 
     @PostMapping("/draft")
@@ -87,11 +108,10 @@ public class CourseController {
     }
 
     @PostMapping("/{courseId}/preview-video")
-    public ApiResponse<Void> uploadPreviewVideo(
+    public ApiResponse<String> uploadPreviewVideo(
             @PathVariable Long courseId,
             @RequestParam("file") MultipartFile previewVideo) {
-        courseService.uploadPreviewVideo(courseId, previewVideo);
-        return ApiResponse.success(null, "Preview video uploaded successfully");
+        return ApiResponse.success(courseService.uploadPreviewVideo(courseId, previewVideo), "Preview video uploaded successfully");
     }
     @GetMapping("/my-courses/learner")
     public ApiResponse<Page<CourseResponse>> myCoursesLearner(

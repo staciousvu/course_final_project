@@ -1,5 +1,6 @@
 package com.example.courseapplicationproject.exception;
 
+import co.elastic.clients.elasticsearch.nodes.Http;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.HttpStatusCode;
 
@@ -54,6 +55,11 @@ public enum ErrorCode {
     CAN_NOT_ACTIVATE(1039,"Voucher can not activate",HttpStatus.BAD_REQUEST),
     TARGET_NOT_FOUND(1040,"Target not found",HttpStatus.NOT_FOUND),
     CONVERSATION_NOT_FOUND(1041,"Conversation not found",HttpStatus.NOT_FOUND),
+    QUIZ_NOT_FOUND(1042,"Quiz not found",HttpStatus.NOT_FOUND),
+    QUESTION_NOT_FOUND(1043,"Question not found",HttpStatus.NOT_FOUND),
+    ANSWER_NOT_FOUND(1044,"Answer not found",HttpStatus.NOT_FOUND),
+    SLIDE_NOT_FOUND(1045,"Slide not found",HttpStatus.NOT_FOUND),
+    REPORT_NOT_FOUND(1046,"Report not found", HttpStatus.NOT_FOUND)
     ;
     private int code;
     private String message;

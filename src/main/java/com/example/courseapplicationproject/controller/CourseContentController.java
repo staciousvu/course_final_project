@@ -1,6 +1,9 @@
 package com.example.courseapplicationproject.controller;
 
+import com.example.courseapplicationproject.dto.request.ContentRequirementTargetRequest;
 import com.example.courseapplicationproject.dto.request.CourseContentDTO;
+import com.example.courseapplicationproject.dto.request.CourseRequirementDTO;
+import com.example.courseapplicationproject.dto.request.CourseTargetDTO;
 import com.example.courseapplicationproject.dto.response.ApiResponse;
 import com.example.courseapplicationproject.service.CourseContentService;
 import com.example.courseapplicationproject.service.CourseService;
@@ -28,6 +31,13 @@ public class CourseContentController {
             @PathVariable Long courseId,
             @RequestBody List<CourseContentDTO> contents) {
         courseContentService.createContents(courseId, contents);
+        return ApiResponse.success(null,"OK");
+    }
+    @PostMapping("/save3/{courseId}")
+    public ApiResponse<Void> createFor3(
+            @PathVariable Long courseId,
+            @RequestBody ContentRequirementTargetRequest request){
+        courseContentService.createContentRequirementTarget(courseId, request.getContents(), request.getRequirements(), request.getTargets());
         return ApiResponse.success(null,"OK");
     }
 

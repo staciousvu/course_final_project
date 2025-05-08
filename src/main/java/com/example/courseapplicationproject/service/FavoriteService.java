@@ -3,6 +3,10 @@ package com.example.courseapplicationproject.service;
 import java.util.*;
 import java.util.stream.Collectors;
 
+import com.example.courseapplicationproject.repository.CartRepository;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 
@@ -22,6 +26,7 @@ import com.example.courseapplicationproject.repository.UserRepository;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
+import org.springframework.transaction.annotation.Transactional;
 
 @RequiredArgsConstructor
 @FieldDefaults(makeFinal = true, level = AccessLevel.PRIVATE)
@@ -31,55 +36,60 @@ public class FavoriteService {
     private final UserRepository userRepository;
     private final CourseRepository courseRepository;
     private final CourseMapper courseMapper;
+    private final CartRepository cartRepository;
+    private final VoucherService voucherService;
 
-    public FavoriteResponse getFavoritesForUser() {
+    public Page<FavoriteResponse.CourseFavorite> getFavoritesForUser(String keyword, Integer page, Integer size) {
         String email = SecurityContextHolder.getContext().getAuthentication().getName();
-        User user = userRepository.findByEmail(email).orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND));
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND));
 
-        List<Favorite> favorites = favoriteRepository.findByUserId(user.getId());
+        Pageable pageable = PageRequest.of(page, size);
+        Page<Favorite> favorites = favoriteRepository.searchFavoritesByUserId(user.getId(), keyword, pageable);
+
         if (favorites.isEmpty()) {
-            return FavoriteResponse.builder().favorites(new ArrayList<>()).build();
+            return Page.empty();
         }
 
-        List<Long> courseIds =
-                favorites.stream().map(favorite -> favorite.getCourse().getId()).toList();
+        List<Long> courseIds = favorites.stream()
+                .map(favorite -> favorite.getCourse().getId())
+                .toList();
 
         Map<Long, Double> avgRatingForCourses = getAverageRatings(courseIds);
         Map<Long, Integer> countRatingForCourses = getCountRatings(courseIds);
 
-        List<FavoriteResponse.CourseFavorite> favoriteList = favorites.stream()
-                .map(favorite -> {
-                    Course course = favorite.getCourse();
-                    CourseResponse courseResponse = courseMapper.toCourseResponse(course);
+        return favorites.map(favorite -> {
+            Course course = favorite.getCourse();
+            CourseResponse courseResponse = courseMapper.toCourseResponse(course);
 
-                    courseResponse.setLevel(course.getLevel().name());
-                    courseResponse.setStatus(course.getStatus().name());
-                    courseResponse.setCountRating(countRatingForCourses.getOrDefault(course.getId(), 0));
-                    courseResponse.setAvgRating(avgRatingForCourses.getOrDefault(course.getId(), 0.0));
+            courseResponse.setLevel(course.getLevel().name());
+            courseResponse.setStatus(course.getStatus().name());
+            courseResponse.setCountRating(countRatingForCourses.getOrDefault(course.getId(), 0));
+            courseResponse.setAvgRating(avgRatingForCourses.getOrDefault(course.getId(), 0.0));
 
-                    User author = course.getAuthor();
-                    courseResponse.setAuthorName(author.getLastName() + " " + author.getFirstName());
+            User author = course.getAuthor();
+            courseResponse.setAuthorName(author.getLastName() + " " + author.getFirstName());
+            courseResponse.setDiscount_price(voucherService.calculateDiscountedPrice(course.getPrice()));
 
-                    int totalLectures = 0;
-                    double totalHour = 0.0;
-                    for (Section section : course.getSections()) {
-                        totalLectures += section.getLectures().size();
-                        totalHour += section.getLectures().stream()
-                                .mapToDouble(lecture -> lecture.getDuration() / 3600.0)
-                                .sum();
-                    }
+            int totalLectures = 0;
+            double totalHour = 0.0;
+            for (Section section : course.getSections()) {
+                totalLectures += section.getLectures().size();
+                totalHour += section.getLectures().stream()
+                        .mapToDouble(lecture -> lecture.getDuration() / 3600.0)
+                        .sum();
+            }
 
-                    return FavoriteResponse.CourseFavorite.builder()
-                            .courseResponse(courseResponse)
-                            .totalHour(totalHour)
-                            .totalLectures(totalLectures)
-                            .build();
-                })
-                .collect(Collectors.toList());
-
-        return FavoriteResponse.builder().favorites(favoriteList).build();
+            return FavoriteResponse.CourseFavorite.builder()
+                    .courseResponse(courseResponse)
+                    .totalHour(totalHour)
+                    .totalLectures(totalLectures)
+                    .build();
+        });
     }
 
+
+    @Transactional
     public void addCourseToFavorites(Long courseId) {
         String email = SecurityContextHolder.getContext().getAuthentication().getName();
         User user = userRepository.findByEmail(email).orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND));
@@ -91,6 +101,7 @@ public class FavoriteService {
         if (!exists) {
             Favorite favorite = Favorite.builder().user(user).course(course).build();
             favoriteRepository.save(favorite);
+            cartRepository.deleteByUserIdAndCourseId(user.getId(),courseId);
         }
     }
 

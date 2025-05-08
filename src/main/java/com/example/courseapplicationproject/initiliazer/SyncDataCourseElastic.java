@@ -31,6 +31,7 @@ public class SyncDataCourseElastic {
                         .title(course.getTitle())
                         .subtitle(course.getSubtitle())
                         .description(course.getDescription())
+                        .status(course.getStatus().name())
                         .build()
         ).toList();
         courseElasticRepository.saveAll(courseDocuments);

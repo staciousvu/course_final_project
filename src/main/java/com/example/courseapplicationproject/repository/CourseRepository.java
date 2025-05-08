@@ -22,6 +22,16 @@ public interface CourseRepository extends JpaRepository<Course, Long> {
     @Query("select c from Course c where c.author.id = :authorId")
     List<Course> findCourseByAuthorId(@Param("authorId") Long authorId);
 
+    @Query("SELECT c FROM Course c " +
+            "WHERE c.author.id = :authorId " +
+            "AND (:keyword IS NULL OR LOWER(c.title) LIKE LOWER(CONCAT('%', :keyword, '%')) " +
+            "OR LOWER(c.description) LIKE LOWER(CONCAT('%', :keyword, '%'))) " +
+            "ORDER BY c.updatedAt DESC")
+    Page<Course> findCourseByAuthorIdAndKeyword(@Param("authorId") Long authorId,
+                                                @Param("keyword") String keyword,
+                                                Pageable pageable);
+
+
     int countCourseByCategory_Id(@Param("categoryId") Long categoryId);
 
     @Query("select coalesce(avg(cr.rating), 0.0) from CourseReview cr where cr.course.id = :courseId")
@@ -126,7 +136,15 @@ public interface CourseRepository extends JpaRepository<Course, Long> {
     @Query("SELECT COUNT(c) > 0 FROM Course c WHERE c.category.id = :categoryId")
     boolean existsByCategoryId(@Param("categoryId") Long categoryId);
 
-    List<Course> findCourseByStatus(Course.CourseStatus status, Sort sort);
+    @Query("SELECT c FROM Course c WHERE " +
+            "(:keyword IS NULL OR LOWER(c.title) LIKE LOWER(CONCAT('%', :keyword, '%')) " +
+            "OR LOWER(c.description) LIKE LOWER(CONCAT('%', :keyword, '%'))) " +
+            "AND c.status = :status " +
+            "AND c.isActive = 'ACTIVE'")
+    Page<Course> findCourseByStatus(@Param("status") Course.CourseStatus status,
+                                    @Param("keyword") String keyword,
+                                    Pageable pageable);
+
 
     Page<Course> findByStatus(Course.CourseStatus courseStatus, Pageable pageable);
 

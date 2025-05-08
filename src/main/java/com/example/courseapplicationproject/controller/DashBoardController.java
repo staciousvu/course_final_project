@@ -32,9 +32,13 @@ public class DashBoardController {
     @GetMapping("/performance-overview")
     public ApiResponse<List<PerformanceOverviewProjection>> performanceOverview(
             @RequestParam(value = "courseId", required = false) Long courseId,
-            @RequestParam(value = "days") int days,
-            @RequestParam(value = "months") int months )
-            {
-        return ApiResponse.success(dashBoardService.getTeacherRevenue(days),"OK");
+            @RequestParam(value = "days", required = false, defaultValue = "0") int days,
+            @RequestParam(value = "months", required = false, defaultValue = "0") int months
+    ) {
+        return ApiResponse.success(
+                dashBoardService.getTeacherRevenue(days, months, courseId),
+                "OK"
+        );
     }
+
 }

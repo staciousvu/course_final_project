@@ -21,46 +21,61 @@ import com.example.courseapplicationproject.entity.Enrollment;
 @Repository
 public interface EnrollRepository extends JpaRepository<Enrollment, Long> {
 
-    @Query("""
-        SELECT
-            FUNCTION('DATE_FORMAT', pd.createdAt, '%Y-%m-%d') AS date,
-            SUM(pd.price * 0.5) AS value
-        FROM PaymentDetails pd
-        WHERE pd.course.author.id = :teacherId
-          AND pd.createdAt >= :startDate
-        GROUP BY FUNCTION('DATE_FORMAT', pd.createdAt, '%Y-%m-%d')
-        ORDER BY FUNCTION('DATE_FORMAT', pd.createdAt, '%Y-%m-%d')
-    """)
-    List<PerformanceOverviewProjection> getTeacherRevenueLastXDays(
-            @Param("teacherId") Long teacherId,
-            @Param("startDate") LocalDateTime startDate
-    );
-
+    // Doanh thu theo ngày
     @Query(value = """
-        WITH RECURSIVE date_series AS (
-            SELECT CURDATE() - INTERVAL :days DAY AS report_date
-            UNION ALL
-            SELECT report_date + INTERVAL 1 DAY
-            FROM date_series
-            WHERE report_date + INTERVAL 1 DAY <= CURDATE()
-        )
-        SELECT
-            DATE_FORMAT(ds.report_date, '%Y-%m-%d') AS date,
-            IFNULL(SUM(pd.price * 0.5), 0) AS value
-        FROM date_series ds
-        LEFT JOIN payment_details pd ON DATE(pd.created_at) = ds.report_date
-        LEFT JOIN course c ON pd.course_id = c.id
-        WHERE c.author_id = :teacherId
-          AND (:courseId IS NULL OR c.id = :courseId)
-        GROUP BY ds.report_date
-        ORDER BY ds.report_date
-        """,
-            nativeQuery = true)
-    List<PerformanceOverviewProjection> getTeacherRevenueLastXDaysNative(
+    WITH RECURSIVE date_series AS (
+        SELECT CURDATE() - INTERVAL :days - 1 DAY AS report_date
+        UNION ALL
+        SELECT report_date + INTERVAL 1 DAY
+        FROM date_series
+        WHERE report_date + INTERVAL 1 DAY <= CURDATE()
+    )
+    SELECT
+        DATE_FORMAT(ds.report_date,'%d-%m-%Y') AS date,
+        IFNULL(SUM(pd.price * 0.5), 0) AS value
+    FROM date_series ds
+    LEFT JOIN payment_details pd 
+        ON DATE(pd.created_at) = ds.report_date
+    LEFT JOIN course c 
+        ON pd.course_id = c.id AND c.author_id = :teacherId AND (:courseId IS NULL OR c.id = :courseId)
+    GROUP BY ds.report_date
+    ORDER BY ds.report_date
+    """, nativeQuery = true)
+    List<PerformanceOverviewProjection> getRevenueByDay(
             @Param("teacherId") Long teacherId,
             @Param("courseId") Long courseId,
             @Param("days") int days
     );
+
+
+    // Doanh thu theo tháng
+    @Query(value = """
+    WITH RECURSIVE month_series AS (
+        SELECT CURDATE() - INTERVAL :months MONTH AS report_date
+        UNION ALL
+        SELECT report_date + INTERVAL 1 MONTH
+        FROM month_series
+        WHERE report_date + INTERVAL 1 MONTH <= CURDATE()
+    )
+    SELECT
+        DATE_FORMAT(ms.report_date, '%m-%Y') AS date,
+        IFNULL(SUM(pd.price * 0.5), 0) AS value
+    FROM month_series ms
+    LEFT JOIN payment_details pd 
+        ON DATE_FORMAT(pd.created_at, '%m-%Y') = DATE_FORMAT(ms.report_date, '%m-%Y')
+    LEFT JOIN course c 
+        ON pd.course_id = c.id AND c.author_id = :teacherId AND (:courseId IS NULL OR c.id = :courseId)
+    GROUP BY ms.report_date
+    ORDER BY ms.report_date
+    """, nativeQuery = true)
+    List<PerformanceOverviewProjection> getRevenueByMonth(
+            @Param("teacherId") Long teacherId,
+            @Param("courseId") Long courseId,
+            @Param("months") int months
+    );
+
+
+
 
     boolean existsByCourseIdAndUserId(Long courseId, Long userId);
 
@@ -91,6 +106,7 @@ public interface EnrollRepository extends JpaRepository<Enrollment, Long> {
             "CONCAT(u.firstName, ' ', u.lastName) AS fullName, " +
             "u.email AS email, " +
             "e.id AS enrollmentId, " +
+            "c.thumbnail AS thumbnail, " +
             "e.createdAt AS enrolledOn, " +
             "c.id AS courseId, " +
             "c.title AS courseTitle, " +
@@ -122,6 +138,7 @@ public interface EnrollRepository extends JpaRepository<Enrollment, Long> {
             "CONCAT(u.firstName, ' ', u.lastName) AS fullName, " +
             "u.email AS email, " +
             "e.id AS enrollmentId, " +
+            "c.thumbnail AS thumbnail, " +
             "e.createdAt AS enrolledOn, " +
             "c.id AS courseId, " +
             "c.title AS courseTitle, " +

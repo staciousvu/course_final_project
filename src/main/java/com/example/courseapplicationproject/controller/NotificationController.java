@@ -34,7 +34,12 @@ public class NotificationController {
     @GetMapping("/unread")
     public ApiResponse<List<NotificationResponse>> getUnreadNotifications() {
         List<NotificationResponse> unreadNotifications = notificationService.getUnreadNotificationsForUser();
-        return ApiResponse.success(unreadNotifications, "Lấy danh sách thông báo chưa đọc thành công");
+        return ApiResponse.success(unreadNotifications,"Lấy danh sách thông báo chưa đọc thành công");
+    }
+    @GetMapping("/all")
+    public ApiResponse<List<NotificationResponse>> getAllNotifications() {
+        List<NotificationResponse> notifications = notificationService.getNotificationsAdmin();
+        return ApiResponse.success(notifications, "Lấy danh sách thông báo cho admin");
     }
 
     @DeleteMapping("/{notificationId}")

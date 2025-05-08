@@ -79,6 +79,8 @@ public class CloudinaryService {
         Map uploadParams = ObjectUtils.asMap(
                 "resource_type",
                 "video",
+                "invalidated",
+                true,
                 "folder",
                 folderVideo,
                 "use_filename",
@@ -102,7 +104,7 @@ public class CloudinaryService {
     // Chia nhỏ file thành từng phần (mỗi chunk 6MB) để upload nhanh hơn
     public Map uploadLargeVideo(MultipartFile file) {
         Map uploadParams = ObjectUtils.asMap(
-                "resource_type", "video", "chunk_size", 6000000 // Chia file thành từng chunk 6MB
+                "resource_type", "video","invalidated",true, "chunk_size", 6000000 // Chia file thành từng chunk 6MB
                 );
         try {
             return cloudinary.uploader().uploadLarge(file.getBytes(), uploadParams);

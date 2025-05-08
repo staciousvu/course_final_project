@@ -5,6 +5,8 @@ import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -23,4 +25,6 @@ public interface PaymentRepository extends JpaRepository<Payment, Long> {
     BigDecimal revenueByCourse(@Param("courseId") Long courseId);
 
     List<Payment> findAllByPaymentStatusAndExpiredTimeBefore(Payment.PaymentStatus paymentStatus, LocalDateTime now);
+
+    Page<Payment> findByUserEmailContainingIgnoreCase(String email, Pageable pageable);
 }

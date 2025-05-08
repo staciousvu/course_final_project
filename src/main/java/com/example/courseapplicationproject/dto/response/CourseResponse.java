@@ -26,6 +26,7 @@ public class CourseResponse {
     String previewVideo;
     String authorName;
     String authorAvatar;
+    String authorEmail;
     String categoryName;
     Double avgRating;
     Integer countRating;
