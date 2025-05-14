@@ -207,7 +207,7 @@ public class RecommendCourseService {
                     .categoryRoot(null)
                     .build();
         }
-        Category category = userActivities.getFirst().getCourse().getCategory();
+        Category category = userActivities.get(0).getCourse().getCategory();
 //        Long selectedCategoryId = userActivities.getFirst().getCourse().getCategory().getId();
         Long selectedCategoryId = null;
         if (!userActivities.isEmpty()) {
