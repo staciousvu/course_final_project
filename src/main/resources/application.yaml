@@ -5,15 +5,15 @@ jwt:
 spring:
   servlet:
     multipart:
-      max-file-size: 200MB
-      max-request-size: 200MB
-  elasticsearch:
-    uris: http://localhost:9200
-  rabbitmq:
-    host: localhost
-    port: 5672
-    username: guest
-    password: guest
+      max-file-size: 2GB
+      max-request-size: 2GB
+#  elasticsearch:
+#    uris: http://localhost:9200
+#  rabbitmq:
+#    host: localhost
+#    port: 5672
+#    username: guest
+#    password: guest
   data:
     redis:
       host: localhost

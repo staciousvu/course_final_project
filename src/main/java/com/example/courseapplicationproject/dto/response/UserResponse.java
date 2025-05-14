@@ -17,6 +17,7 @@ public class UserResponse {
     String lastName;
     String fullName;
     LocalDate dateOfBirth;
+    String favoriteCategory;
     Boolean gender;
     String address;
     String email;

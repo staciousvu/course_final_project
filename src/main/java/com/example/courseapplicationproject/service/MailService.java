@@ -9,6 +9,7 @@ import org.springframework.amqp.rabbit.annotation.RabbitListener;
 import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.mail.javamail.MimeMessageHelper;
+import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 import org.thymeleaf.TemplateEngine;
 import org.thymeleaf.context.Context;
@@ -26,7 +27,8 @@ public class MailService {
     private final TemplateEngine templateEngine;
 
 
-    @KafkaListener(topics = "register", groupId = "notification-group")
+    @Async
+//    @KafkaListener(topics = "register", groupId = "notification-group")
     public void register(NotificationEvent notificationEvent) throws MessagingException {
         log.info("Received Kafka message: {}", notificationEvent);
 
@@ -44,7 +46,9 @@ public class MailService {
         javaMailSender.send(message);
         log.info("Email sent to: {}", notificationEvent.getRecipient());
     }
-    @KafkaListener(topics = "reset-password", groupId = "notification-group")
+
+    @Async
+//    @KafkaListener(topics = "reset-password", groupId = "notification-group")
     public void resetPassword(NotificationEvent notificationEvent) throws MessagingException {
         log.info("Received Kafka reset password event: {}", notificationEvent);
 

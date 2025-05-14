@@ -79,4 +79,11 @@ public interface CategoryRepository extends JpaRepository<Category, Long> {
     List<Category> findByParentCategoryIsNullAndIsActiveTrue();
 
     List<Category> findByParentCategoryId(Long parentId);
+
+    @Query("SELECT c FROM Category c WHERE c.id NOT IN (" +
+            "SELECT DISTINCT sc.parentCategory.id FROM Category sc WHERE sc.parentCategory IS NOT NULL)")
+    List<Category> findAllLeafCategories();
+
+    @Query("select count(c) from Course c where c.category.id=:topicId")
+    Long countCourseByTopicId(@Param("topicId") Long topicId);
 }

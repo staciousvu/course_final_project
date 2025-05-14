@@ -1,5 +1,6 @@
 package com.example.courseapplicationproject.service;
 
+import java.io.IOException;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
@@ -30,6 +31,7 @@ public class LectureService {
     LectureRepository lectureRepository;
     SectionRepository sectionRepository;
     CloudinaryService cloudinaryService;
+    GoogleCloudService googleCloudService;
 
     @Transactional
     public LectureResponse createLecture(LectureCreateRequest request) {
@@ -55,15 +57,19 @@ public class LectureService {
         lectureRepository.save(lecture);
     }
 
-    public void uploadLecture(LectureUploadRequest request) throws ExecutionException, InterruptedException {
+    public void uploadLecture(LectureUploadRequest request) throws ExecutionException, InterruptedException, IOException {
         log.info("Uploading lecture video for ID: {}", request.getLectureId());
 
         Lecture lecture = lectureRepository.findById(request.getLectureId())
                 .orElseThrow(() -> new AppException(ErrorCode.LECTURE_NOT_FOUND));
 
-        Map objects = cloudinaryService.uploadVideoAuto(request.getFile()).get();
-        lecture.setContentUrl(objects.get("secure_url").toString());
-        lecture.setDuration((Double) objects.get("duration"));
+//        Map objects = cloudinaryService.uploadVideoAuto(request.getFile()).get();
+        String contentUrl = googleCloudService.uploadFile(request.getFile().getOriginalFilename(),
+                request.getFile().getBytes(), request.getFile().getContentType());
+        lecture.setContentUrl(contentUrl);
+        lecture.setDuration(10.0);
+//        lecture.setContentUrl(objects.get("secure_url").toString());
+//        lecture.setDuration((Double) objects.get("duration"));
         lecture.setType(Lecture.LectureType.VIDEO);
         lectureRepository.save(lecture);
 //        return cloudinaryService.uploadVideoAuto(request.getFile())

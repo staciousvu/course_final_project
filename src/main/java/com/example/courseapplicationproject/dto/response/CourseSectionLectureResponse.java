@@ -15,6 +15,7 @@ import lombok.experimental.FieldDefaults;
 public class CourseSectionLectureResponse {
     Long courseId;
     String courseName;
+    Long authorId;
     int totalSections;
     int totalLectures;
     Double duration;

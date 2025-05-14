@@ -1,5 +1,6 @@
 package com.example.courseapplicationproject.service;
 
+import java.io.IOException;
 import java.math.BigDecimal;
 import java.util.*;
 import java.util.concurrent.ExecutionException;
@@ -15,7 +16,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
-import com.example.courseapplicationproject.elasticsearch.repository.CourseElasticRepository;
 import com.example.courseapplicationproject.elasticsearch.service.CourseElasticService;
 import com.example.courseapplicationproject.entity.*;
 import com.example.courseapplicationproject.exception.AppException;
@@ -38,8 +38,8 @@ public class CourseService {
     UserRepository userRepository;
     EnrollRepository enrollRepository;
     CategoryRepository categoryRepository;
-    CourseElasticRepository courseElasticRepository;
-    CourseElasticService courseElasticService;
+//    CourseElasticRepository courseElasticRepository;
+//    CourseElasticService courseElasticService;
     ActivityService activityService;
     CartRepository cartRepository;
     VoucherService voucherService;
@@ -47,6 +47,42 @@ public class CourseService {
     CourseContentService courseContentService;
     CourseRequirementService courseRequirementService;
     CourseTargetService courseTargetService;
+    GoogleCloudService googleCloudService;
+    public List<CourseDTO> getAcceptedCoursesForAuthor(){
+        String email = SecurityContextHolder.getContext().getAuthentication().getName();
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND));
+        List<Course> courses = courseRepository.findByAuthorIdAndStatus(user.getId(), Course.CourseStatus.ACCEPTED);
+        return courses.stream().map(course -> CourseDTO.builder()
+                        .id(course.getId())
+                        .title(course.getTitle())
+                        .build())
+                .collect(Collectors.toList());
+    }
+
+    public boolean isCourseValid(Long courseId) {
+        Course course = courseRepository.findById(courseId)
+                .orElseThrow(()-> new AppException(ErrorCode.COURSE_NOT_FOUND));
+        if (course == null) return false;
+
+        if (isNullOrEmpty(course.getTitle())) return false;
+        if (isNullOrEmpty(course.getDescription())) return false;
+        if (isNullOrEmpty(course.getPreviewVideo())) return false;
+        if (isNullOrEmpty(course.getLanguage())) return false;
+
+        if (course.getPrice() == null || course.getPrice().compareTo(BigDecimal.ZERO) <= 0) return false;
+
+        if (course.getStatus() == null) return false;
+        if (course.getLevel() == null) return false;
+
+        if (course.getCategory() == null) return false;
+
+        return true;
+    }
+
+    private boolean isNullOrEmpty(String value) {
+        return value == null || value.trim().isEmpty();
+    }
 
     public Map<Long, Double> getAverageRatings(List<Long> courseIds) {
         List<Object[]> results = courseRepository.findAverageRatingsForCourses(courseIds);
@@ -241,11 +277,14 @@ public class CourseService {
         }
         String rtvideo;
         try {
-            Map objects = cloudinaryService.uploadVideoAuto(previewVideo).get();
-            course.setPreviewVideo(objects.get("secure_url").toString());
-            rtvideo = objects.get("secure_url").toString();
-        } catch (InterruptedException | ExecutionException e) {
-            throw new RuntimeException("Error uploading video", e);
+            rtvideo = googleCloudService.uploadFile(previewVideo.getOriginalFilename(),
+                    previewVideo.getBytes(), previewVideo.getContentType());
+            course.setPreviewVideo(rtvideo);
+//            Map objects = cloudinaryService.uploadVideoAuto(previewVideo).get();
+//            course.setPreviewVideo(objects.get("secure_url").toString());
+//            rtvideo = objects.get("secure_url").toString();
+        } catch (IOException e) {
+            throw new RuntimeException(e);
         }
         courseRepository.save(course);
         return rtvideo;
@@ -274,7 +313,8 @@ public class CourseService {
 
         // Xử lý tìm kiếm theo keyword qua ElasticSearch
         if (keyword != null && !keyword.isEmpty()) {
-            List<String> courseIdsString = courseElasticService.fuzzySearch(keyword);
+//            List<String> courseIdsString = courseElasticService.fuzzySearch(keyword);
+            List<Course> coursessss = courseRepository.findByKeyword(keyword);
             if (user!=null){
                 UserSearchKeywordHistory userSearchKeywordHistory = UserSearchKeywordHistory.builder()
                         .keyword(keyword)
@@ -283,7 +323,9 @@ public class CourseService {
                 searchHistoryRepository.save(userSearchKeywordHistory);
             }
 
-            List<Long> courseIds = courseIdsString.stream().map(Long::parseLong).toList();
+//            List<Long> courseIds = courseIdsString.stream().map(Long::parseLong).toList();
+            List<Long> courseIds = coursessss.stream().map(AbstractEntity::getId).toList();
+
             if (courseIds.isEmpty()) return Page.empty();
             spec = spec.and(((root, query, criteriaBuilder) -> root.get("id").in(courseIds)));
         }
@@ -346,9 +388,10 @@ public class CourseService {
     public Page<CourseResponse> searchCoursesBasic(String keyword, Integer page, Integer size) {
         Specification<Course> spec = Specification.where(null);
         if (keyword != null && !keyword.trim().isEmpty()) {
-            List<String> courseIdsString = courseElasticService.fuzzySearch(keyword);
-            List<Long> courseIds = courseIdsString.stream().map(Long::parseLong).toList();
-
+            List<Course> coursessss = courseRepository.findByKeyword(keyword);
+//            List<String> courseIdsString = courseElasticService.fuzzySearch(keyword);
+//            List<Long> courseIds = courseIdsString.stream().map(Long::parseLong).toList();
+            List<Long> courseIds = coursessss.stream().map(AbstractEntity::getId).toList();
             if (courseIds.isEmpty()) {
                 return Page.empty();
             }
@@ -420,10 +463,10 @@ public class CourseService {
             courseResponse.setCountEnrolled(course.getCountEnrolled());
             courseResponse.setAvgRating(avgRatingForCourses.getOrDefault(course.getId(), 0.0));
             courseResponse.setAuthorName(
-                    course.getAuthor().getLastName() + " " + course.getAuthor().getFirstName());
+                    course.getAuthor().getFirstName() + " " + course.getAuthor().getLastName());
             courseResponse.setAuthorEmail(course.getAuthor().getEmail());
             courseResponse.setAuthorAvatar(course.getAuthor().getAvatar());
-            if (course.getStatus().name().equals("ACCEPTED")) {
+            if (course.getStatus().equals(Course.CourseStatus.ACCEPTED)) {
                 courseResponse.setDiscount_price(voucherService.calculateDiscountedPrice(course.getPrice()));
             }else {
                 courseResponse.setDiscount_price(BigDecimal.ZERO);
@@ -588,6 +631,7 @@ public class CourseService {
         return CourseSectionLectureResponse.builder()
                 .progressResponse(progressResponse)
                 .courseName(course.getTitle())
+                .authorId(course.getAuthor().getId())
                 .courseId(courseId)
                 .totalSections(course.getSections().size())
                 .totalLectures(course.getSections().stream()
@@ -710,7 +754,7 @@ public class CourseService {
         }
 
         Pageable pageable = PageRequest.of(page, size, Sort.by(orders));
-        Page<Course> coursePage = courseRepository.findByStatus(Course.CourseStatus.ACCEPTED, pageable);
+        Page<Course> coursePage = courseRepository.findByStatusAndIsActive(Course.CourseStatus.ACCEPTED, Course.IsActive.ACTIVE, pageable);
         List<Course> courses = coursePage.getContent();
 
         // Lấy danh sách ID của các khóa học

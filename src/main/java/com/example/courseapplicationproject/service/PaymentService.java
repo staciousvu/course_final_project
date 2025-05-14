@@ -2,6 +2,7 @@ package com.example.courseapplicationproject.service;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Objects;
 import java.util.UUID;
 
 import com.example.courseapplicationproject.dto.response.PaymentResponseDTO;
@@ -64,7 +65,7 @@ public class PaymentService {
                                 .courseId(detail.getCourse().getId())
                                 .courseName(detail.getCourse().getTitle())
                                 .urlImage(detail.getCourse().getThumbnail())
-                                .price(voucherService.calculateDiscountedPrice(detail.getPrice()))
+                                .price(detail.getPrice())
                                 .build()
                 ).toList())
                 .build());
@@ -73,39 +74,59 @@ public class PaymentService {
 
     public Payment createPayment(PaymentRequest paymentRequest) {
         String transactionId = UUID.randomUUID().toString();
+
         User user = userRepository
                 .findByEmail(paymentRequest.getEmail())
                 .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND));
-        paymentRequest.getCourses().forEach(idx -> {
-            if (enrollRepository.existsByCourseIdAndUserId(idx, user.getId())) {
-                throw new AppException(ErrorCode.COURSE_ALREADY_PURCHASED);
-            }
-        });
-        Payment payment = Payment.builder()
+
+        Payment.OrderType orderType = Payment.OrderType.valueOf(paymentRequest.getOrderType());
+
+        // Kiểm tra nếu là mua khóa học
+        if (orderType == Payment.OrderType.COURSE) {
+            // Check người dùng đã mua khóa học chưa
+            paymentRequest.getCourses().forEach(courseId -> {
+                if (enrollRepository.existsByCourseIdAndUserId(courseId, user.getId())) {
+                    throw new AppException(ErrorCode.COURSE_ALREADY_PURCHASED);
+                }
+            });
+        }
+
+        // Khởi tạo payment
+        Payment.PaymentBuilder builder = Payment.builder()
                 .paymentMethod(Payment.PaymentMethod.valueOf(paymentRequest.getPaymentMethod()))
                 .paymentStatus(Payment.PaymentStatus.PENDING)
                 .expiredTime(LocalDateTime.now().plusMinutes(15))
                 .totalAmount(paymentRequest.getTotalAmount())
+                .orderType(orderType)
                 .transactionId(transactionId)
                 .user(user)
-                .paymentInformation(paymentRequest.getOrderInfo())
-                .build();
-        List<PaymentDetails> paymentDetails = courseRepository.findAllById(paymentRequest.getCourses()).stream()
-                .map(course -> {
-                    return PaymentDetails.builder()
-                            .course(course)
-                            .price(course.getPrice())
-                            .payment(payment)
-                            .build();
-                })
-                .toList();
+                .paymentInformation(paymentRequest.getOrderInfo());
 
-        payment.setPaymentDetails(paymentDetails);
+        // Nếu là quảng cáo thì thêm adPackageId
+        if (orderType == Payment.OrderType.AD) {
+            builder.adPackageId(paymentRequest.getAdPackageId());
+        }
+
+        Payment payment = builder.build();
+
+        // Nếu là mua khóa học thì thêm paymentDetails
+        if (orderType == Payment.OrderType.COURSE) {
+            List<PaymentDetails> paymentDetails = courseRepository.findAllById(paymentRequest.getCourses())
+                    .stream()
+                    .map(course -> PaymentDetails.builder()
+                            .course(course)
+                            .price(voucherService.calculateDiscountedPrice(course.getPrice()))
+                            .payment(payment)
+                            .build())
+                    .toList();
+            payment.setPaymentDetails(paymentDetails);
+        }
+
         Payment savedPayment = paymentRepository.save(payment);
-        log.info("Saved Payment: " + savedPayment);
-        log.info("User inside Payment: " + savedPayment.getUser());
+        log.info("Saved Payment: {}", savedPayment);
         return savedPayment;
     }
+
 
     public void updatePaymentStatusToSuccess(String transactionId) {
         Payment payment = paymentRepository

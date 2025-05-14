@@ -41,6 +41,57 @@ public class RecommendCourseService {
     EnrollRepository enrollRepository;
     VoucherService voucherService;
     CourseContentService courseContentService;
+    HomeCategoryRepository homeCategoryRepository;
+    public List<RecommendCourseCategoryLeafs> getRecommendAdminCourse(){
+        String email = SecurityContextHolder.getContext().getAuthentication().getName();
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND));
+        List<HomeCategory> homeCategories = homeCategoryRepository.findAll();
+        if (homeCategories.isEmpty()) {
+            return Collections.emptyList();
+        }
+        List<Long> subCategoriesIds =
+                homeCategories.stream().map(s -> s.getCategory().getId()).toList();
+        List<Long> subCategoriesLeafIds = categoryRepository.findLeafCategories(subCategoriesIds);
+        if (subCategoriesLeafIds.isEmpty()) {
+            return Collections.emptyList();
+        }
+        List<RecommendCourseCategoryLeafs> recommendCourseCategoryLeafsRespons = new ArrayList<>();
+        for (Long categoryId : subCategoriesLeafIds) {
+            Pageable pageable = PageRequest.of(0, 5);
+            List<Course> courses = courseRepository.findTopCoursesByCategoryExcludeEnrolled(categoryId,user.getId(), pageable);
+            if (courses.isEmpty()) continue;
+            RecommendCourseCategoryLeafs recommendCourseCategoryLeafs = new RecommendCourseCategoryLeafs();
+            recommendCourseCategoryLeafs.setCategoryName(
+                    courses.getFirst().getCategory().getName());
+
+            // Lấy danh sách ID khóa học
+            List<Long> courseIds = courses.stream().map(Course::getId).toList();
+            // Lấy thông tin đánh giá trung bình và số lượng đánh giá
+            Map<Long, Double> avgRatingForCourses = getAverageRatings(courseIds);
+            Map<Long, Integer> countRatingForCourses = getCountRatings(courseIds);
+
+            List<CourseResponse> courseResponses = courses.stream()
+                    .map(course -> {
+                        CourseResponse response = courseMapper.toCourseResponse(course);
+                        response.setAvgRating(Optional.ofNullable(avgRatingForCourses.get(course.getId()))
+                                .orElse(0.0));
+                        response.setCountRating(Optional.ofNullable(countRatingForCourses.get(course.getId()))
+                                .orElse(0));
+                        response.setAuthorName(course.getAuthor().getFirstName() + " "
+                                + course.getAuthor().getLastName());
+                        response.setAuthorAvatar(course.getAuthor().getAvatar());
+                        response.setContents(courseContentService.getAllContents(course.getId())); //course content
+                        response.setPreviewVideo(course.getPreviewVideo());
+                        response.setDiscount_price(voucherService.calculateDiscountedPrice(course.getPrice()));
+                        return response;
+                    })
+                    .toList();
+            recommendCourseCategoryLeafs.setCourses(courseResponses);
+            recommendCourseCategoryLeafsRespons.add(recommendCourseCategoryLeafs);
+        }
+        return recommendCourseCategoryLeafsRespons;
+    }
 
     public RecommendCourseCategoryRoot getRecommendCoursesByPreferenceRoot() {
         String email = SecurityContextHolder.getContext().getAuthentication().getName();

@@ -21,6 +21,9 @@ import lombok.experimental.FieldDefaults;
 @ToString
 @FieldDefaults(level = AccessLevel.PRIVATE)
 public class Payment extends AbstractEntity<Long> {
+    public enum OrderType {
+        COURSE, AD
+    }
     public enum PaymentMethod {
         VNPAY,
         MOMO,
@@ -38,6 +41,8 @@ public class Payment extends AbstractEntity<Long> {
         FAILED,
         SUCCESS,
     }
+    @Enumerated(EnumType.STRING)
+    OrderType orderType;
 
     @Enumerated(EnumType.STRING)
     @Column(name = "payment_method", nullable = false)
@@ -60,4 +65,6 @@ public class Payment extends AbstractEntity<Long> {
     @OneToMany(mappedBy = "payment", fetch = FetchType.EAGER, cascade = CascadeType.ALL, orphanRemoval = true)
     @JsonIgnore
     List<PaymentDetails> paymentDetails;
+
+    Long adPackageId;
 }

@@ -18,13 +18,14 @@ public class CourseResponse {
     String subtitle;
     String description;
     BigDecimal price;
-    BigDecimal discount_price;
+    BigDecimal discount_price;  
     Integer duration;
     String language;
     String level;
     String thumbnail;
     String previewVideo;
     String authorName;
+    Long authorId;
     String authorAvatar;
     String authorEmail;
     String categoryName;

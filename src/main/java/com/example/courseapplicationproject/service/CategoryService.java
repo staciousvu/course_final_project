@@ -14,7 +14,6 @@ import org.springframework.transaction.annotation.Transactional;
 
 import com.example.courseapplicationproject.dto.request.CategoryRequest;
 import com.example.courseapplicationproject.elasticsearch.document.CategoryDocument;
-import com.example.courseapplicationproject.elasticsearch.repository.CategoryElasticRepository;
 import com.example.courseapplicationproject.elasticsearch.service.CategoryElasticService;
 import com.example.courseapplicationproject.entity.Category;
 import com.example.courseapplicationproject.exception.AppException;
@@ -91,21 +90,6 @@ public class CategoryService implements ICategoryService {
                 .categories(categoryDTOS)
                 .build();
     }
-
-//    @Override
-//    @Transactional
-//    public CategoryBasicResponse createCategory(CategoryRequest request) {
-//        log.info("Creating new category: {}", request.getName());
-//        String newSlug = SlugUtils.generateSlug(request.getName());
-//        Category parentCategory = categoryRepository.findById(request.getParentCategoryId())
-//                .orElseThrow(() -> new AppException(ErrorCode.CATEGORY_NOT_FOUND));
-//        Category category = categoryMapper.toCategory(request);
-//        category.setParentCategory(parentCategory);
-//        category.setSlug(newSlug);
-//        Category savedCategory = categoryRepository.save(category);
-//        log.info("parent id:"+savedCategory.getParentCategory());
-//        return categoryMapper.toCategoryResponse(savedCategory);
-//    }
 
     //    @CachePut(value = "category", key = "#result.slug")
     @Override
@@ -203,6 +187,11 @@ public class CategoryService implements ICategoryService {
                 .collect(Collectors.toList());
     }
 
+    @Override
+    public List<CategoryBasicResponse> searchCategories(String keyword) {
+        return List.of();
+    }
+
     private Set<CategoryBasicResponse> getActiveSubCategories(Set<Category> subCategories) {
         return subCategories.stream()
                 .filter(Category::getIsActive)
@@ -215,14 +204,14 @@ public class CategoryService implements ICategoryService {
     }
 
 
-    @Override
-    public List<CategoryBasicResponse> searchCategories(String keyword) {
-        log.info("Searching categories with keyword: {}", keyword);
-        List<CategoryDocument> categoryDocuments = categoryElasticService.searchCategory(keyword);
-        return categoryDocuments.stream()
-                .map(categoryMapper::toCategoryBasicResponse)
-                .collect(Collectors.toList());
-    }
+//    @Override
+//    public List<CategoryBasicResponse> searchCategories(String keyword) {
+//        log.info("Searching categories with keyword: {}", keyword);
+//        List<CategoryDocument> categoryDocuments = categoryElasticService.searchCategory(keyword);
+//        return categoryDocuments.stream()
+//                .map(categoryMapper::toCategoryBasicResponse)
+//                .collect(Collectors.toList());
+//    }
 
     @Override
     public List<CategoryBasicResponse> getCategoriesByParentId(Long parentId) {
@@ -264,6 +253,43 @@ public class CategoryService implements ICategoryService {
         }
         return hierarchy;
     }
+    public CategoryRecommendAdminDTO getAllLeafsCategoryByRootCategory() {
+        List<Category> rootCategories = categoryRepository.findRootCategories();
+
+        List<CategoryRecommendAdminDTO.RootCategoriesDTO> rootDTOs = rootCategories.stream()
+                .map(root -> {
+                    // Lấy các leaf categories bên dưới root này
+                    List<Category> leafCategories = categoryRepository.findAllTopicCategoryIds(root.getId());
+
+                    // Chuyển danh sách leaf sang DTO
+                    List<CategoryRecommendAdminDTO.LeafCategoriesDTO> leafDTOs = leafCategories.stream()
+                            .map(leaf -> CategoryRecommendAdminDTO.LeafCategoriesDTO.builder()
+                                    .id(leaf.getId())
+                                    .name(leaf.getName())
+                                    .slug(leaf.getSlug())
+                                    .totalCourses(categoryRepository.countCourseByTopicId(leaf.getId()))
+                                    .isActive(leaf.getIsActive())
+                                    .displayOrder(leaf.getDisplayOrder())
+                                    .build())
+                            .toList();
+
+                    // Trả về Root DTO
+                    return CategoryRecommendAdminDTO.RootCategoriesDTO.builder()
+                            .id(root.getId())
+                            .name(root.getName())
+                            .slug(root.getSlug())
+                            .isActive(root.getIsActive())
+                            .displayOrder(root.getDisplayOrder())
+                            .leafCategories(leafDTOs)
+                            .build();
+                })
+                .toList();
+
+        CategoryRecommendAdminDTO result = new CategoryRecommendAdminDTO();
+        result.setRootCategoriesDTOS(rootDTOs);
+        return result;
+    }
+
     public List<CategoryDTO> getRootCategories(){
         List<Category> rootCategories = categoryRepository.findRootCategories();
         return rootCategories.stream()

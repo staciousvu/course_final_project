@@ -1,8 +1,10 @@
 package com.example.courseapplicationproject.controller;
 
 import com.example.courseapplicationproject.dto.event.NotificationEvent;
+import com.example.courseapplicationproject.dto.response.ApiResponse;
 import org.springframework.http.ResponseEntity;
 import org.springframework.kafka.core.KafkaTemplate;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
@@ -35,5 +37,9 @@ public class TestController {
                 .build();
         kafkaTemplate.send("test", notificationEvent);
         return ResponseEntity.ok().build();
+    }
+    @GetMapping("/check")
+    public ApiResponse<String> getMessagess() {
+        return ApiResponse.success("OKEEEE","OK");
     }
 }

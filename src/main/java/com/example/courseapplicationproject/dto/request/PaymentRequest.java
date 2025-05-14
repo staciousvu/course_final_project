@@ -20,6 +20,8 @@ public class PaymentRequest {
     @JsonProperty("payment_method")
     String paymentMethod;
 
+    String orderType; // "COURSE" hoặc "AD"
+
     @JsonProperty("total_amount")
     BigDecimal totalAmount;
 
@@ -28,4 +30,6 @@ public class PaymentRequest {
 
     @JsonProperty("order_info")
     String orderInfo;
+
+    Long adPackageId;
 }

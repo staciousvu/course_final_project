@@ -1,0 +1,13 @@
+{
+  "type": "service_account",
+  "project_id": "eighth-surfer-459602-g4",
+  "private_key_id": "8df7f9bb6d6345cddceca7bd29bde390eb2b601b",
+  "private_key": "-----BEGIN PRIVATE KEY-----\nMIIEvQIBADANBgkqhkiG9w0BAQEFAASCBKcwggSjAgEAAoIBAQDR+AIpG3ByK4RD\nRDQJDYnoklq12rl1KPv4hnbUKI/zQqIq/KXkZmbAaRTrwYkFCVK1xQuFHnWeNxz6\nFNfgfVwSsBdEw16DPBO7npDjVNJG3LjUJHX/i0AOMNfVXaqVbzBRuLMG1ZjseE4a\n9Icj5UGl9UBIgH3JEVZFDcko1cTc+kpZBeDRZIa7uUPDOoDrIluPBfwgxeUGc/dt\njcAnSsgJjyNla/LNamsaEc8tel9ZrUUhSGbB2Ir1wO3SF48r4QXtLNEDczOm5+yj\nMOpw7PyjvhfQ0hRyUOmDVUBFnHbK88irY/0EqvlgFCpnz1AyEvz+Sbgq8l52nooO\nQtUZmcgfAgMBAAECggEACBaKGsREUhmMCD1N1dVwLQXKObwZrcIs5pdjZ2vCk8fK\n0GYYC9LH/XxuwmAbo5aG2ZqkBXY1aKlN0/JOmIarr8qZstvlvZ9oUS9b/G3Nhc5F\nzmIzK2tVRdaq0bzAb+4vCc7YEpjSwbUmqRInTIItw7NNTR2p+r9Qt+s+hvSpFyv5\nFkrh7s8io5TGxzRBR8ommT7PYQ7taN2+yXy2hs1toqJlFczyL3avAI9v12G9TY6s\nLQcmyNJA9gfBr71A10izjohGIAXo6sfk8+0nHrJGaxMHCER5TCzEz0PoZKw5QShS\nngycRuBTUJljfS4ivcZfAgM+1ko27qXGjZODeLvF8QKBgQD+JsRlTnJ5jomaF1+t\n5wBH/u9utA2oCiJijc+cRHFG1BTj/f6/LECnqecCya93aY1Xyy+s39XLr+Z5vkE/\nBZeD9PWcsl7GCvinLvlzDsoEvbDd8jdyLcsGaDu/jMUMNAwlmo5GB+2IV1u2dh2v\nmgsMHX+nZ1fio7wWOIrV1tNcEQKBgQDTfvkBPzMB5gHxXhKmZJPQmDW44/42Nlun\n6jAEmcqAvwgxscEQ6DYjcfKuFnZQgibzgHOA8i5fuCqxyJmQCB1PjAhJu+hfi4al\np+xR09/TaF05iRE4ykVk8/xIIRNA33QBieQH3C2gzdVlO7UvOxSwfzX6GKCYoxnm\nvjyHuoLRLwKBgGQJVlyZ2C1IkZj5gkutFUtBaXUlogp2krpAH2ve9MdwSxjCrTcK\ncBiOo8NRJ6PVBDF+ZLGjGUAnaIya+ouX49+o19Rp0SwavWzw7HcBZzsefzOdV321\n0Kgg9wOaoSUAh5d1knK2RCTaXdsf+udXtul54vk9kDZBRJNqhhtNh7xBAoGBALo2\n9rlRUvDd+mHxaUxWDAvCqLJ1E7PZ4pOSz9qNKk53ZJiUoJ/pRRmqT3lWT7ANGIyX\nUZt8ILaoqfbE3+iALIaIjheVukC90bzzgFB/03gJUOPCuoYdGkKLzFoZvSEGXdao\n+TyucQI/mR88FghS5aGNMBJXMreSC9EtOJBs+JeDAoGAEOZFpSoXDFe3Hii3rA5J\nC6TjJH7YVyqG+IF4oeaHlsTovgRSL+9I+hIK8JLJGrVsE1MkL/Hb54zlO3bfrwwQ\nukoytzSdk6cw1GkDqm+dhABCeg8/9x3VJELH+bX1dQygeVb1z6PJMm2/unS2ix0t\nMTSXigh0FJVRFozqcdlKWQI=\n-----END PRIVATE KEY-----\n",
+  "client_email": "spring-boot-uploader-video@eighth-surfer-459602-g4.iam.gserviceaccount.com",
+  "client_id": "107087391701553682476",
+  "auth_uri": "https://accounts.google.com/o/oauth2/auth",
+  "token_uri": "https://oauth2.googleapis.com/token",
+  "auth_provider_x509_cert_url": "https://www.googleapis.com/oauth2/v1/certs",
+  "client_x509_cert_url": "https://www.googleapis.com/robot/v1/metadata/x509/spring-boot-uploader-video%40eighth-surfer-459602-g4.iam.gserviceaccount.com",
+  "universe_domain": "googleapis.com"
+}

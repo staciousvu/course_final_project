@@ -26,16 +26,16 @@ public class ClearData {
         System.out.println("✅ Redis data cleared on application startup!");
 
     }
-    private final RestClient restClient;
-
-    @EventListener(ApplicationReadyEvent.class)
-    public void deleteAllIndices() {
-        try {
-            Request request = new Request("DELETE", "/_all");
-            Response response = restClient.performRequest(request);
-            System.out.println("✅ All Elasticsearch indices deleted successfully!");
-        } catch (IOException e) {
-            System.err.println("⚠ Failed to delete indices: " + e.getMessage());
-        }
-    }
+//    private final RestClient restClient;
+//
+//    @EventListener(ApplicationReadyEvent.class)
+//    public void deleteAllIndices() {
+//        try {
+//            Request request = new Request("DELETE", "/_all");
+//            Response response = restClient.performRequest(request);
+//            System.out.println("✅ All Elasticsearch indices deleted successfully!");
+//        } catch (IOException e) {
+//            System.err.println("⚠ Failed to delete indices: " + e.getMessage());
+//        }
+//    }
 }

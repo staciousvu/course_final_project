@@ -16,6 +16,15 @@ import com.example.courseapplicationproject.entity.Course;
 
 @Repository
 public interface CourseRepository extends JpaRepository<Course, Long> {
+    // Truy vấn danh sách các Course theo keyword (trong title, subtitle và description)
+    @Query("SELECT c FROM Course c WHERE " +
+            "LOWER(c.title) LIKE LOWER(CONCAT('%', :keyword, '%')) OR " +
+            "LOWER(c.subtitle) LIKE LOWER(CONCAT('%', :keyword, '%')) OR " +
+            "LOWER(c.description) LIKE LOWER(CONCAT('%', :keyword, '%'))")
+    List<Course> findByKeyword(@Param("keyword") String keyword);
+
+    List<Course> findByAuthorIdAndStatus(Long authorId, Course.CourseStatus status);
+
     @Query("select count(*) from Course c where c.author.id = :authorId")
     int countCourseByByAuthor(@Param("authorId") Long authorId);
 
@@ -146,7 +155,8 @@ public interface CourseRepository extends JpaRepository<Course, Long> {
                                     Pageable pageable);
 
 
-    Page<Course> findByStatus(Course.CourseStatus courseStatus, Pageable pageable);
+    Page<Course> findByStatusAndIsActive(Course.CourseStatus status, Course.IsActive isActive, Pageable pageable);
+
 
     @Query("SELECT c.author.id, COUNT(c) FROM Course c GROUP BY c.author.id")
     List<Object[]> countCoursesByAuthor();

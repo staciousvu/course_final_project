@@ -21,6 +21,7 @@ public class CourseReportResponse {
 
     // Thông tin khóa học
     private String courseTitle;
+    private Long courseId;
     private String courseThumbnail;
     private String authorFullName;
 

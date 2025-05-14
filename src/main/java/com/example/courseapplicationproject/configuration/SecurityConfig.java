@@ -57,6 +57,12 @@ public class SecurityConfig {
             "/voucher/deactivate-voucher/**",
             "/course/*/sections-lectures/no-auth",
             "/course/course-detail/**",
+            "recommend/root",
+            "recommend/leafs",
+            "recommend/activity",
+            "recommend/related-enrolled",
+            "recommend/category/**",
+            "recommend/recommend-admin",
             "/ws/**"
         //            "/recommend/root",
         //            "/recommend/leafs"

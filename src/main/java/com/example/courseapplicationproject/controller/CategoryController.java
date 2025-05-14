@@ -31,11 +31,6 @@ public class CategoryController {
     public ApiResponse<Category> getCategoryById(@PathVariable("categoryId") Long categoryId) {
         return ApiResponse.success(categoryService.getCategoryById(categoryId),"oke");
     }
-//    @PostMapping("/create")
-//    public ApiResponse<CategoryBasicResponse> createCategory(@RequestBody CategoryRequest request) {
-//        return ApiResponse.success(categoryService.createCategory(request), "Category created successfully");
-//    }
-
     @PutMapping("/{id}")
     public ApiResponse<CategoryBasicResponse> updateCategory(
             @PathVariable Long id, @RequestBody CategoryRequest request) {
@@ -105,8 +100,8 @@ public class CategoryController {
     public ApiResponse<SurveyPrefTopicResponse> getSurveyTopicCategories(@PathVariable Long parentId) {
         return ApiResponse.success(categoryService.surveyPrefTopicResponse(parentId), "OK");
     }
-
-
-
-
+    @GetMapping("/all-leafs")
+    public ApiResponse<CategoryRecommendAdminDTO> getAllLeafsCategoriesByRootCategory() {
+        return ApiResponse.success(categoryService.getAllLeafsCategoryByRootCategory(), "OK");
+    }
 }

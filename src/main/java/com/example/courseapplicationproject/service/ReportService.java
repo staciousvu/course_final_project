@@ -79,6 +79,7 @@ public class ReportService {
                 .userFullName(user.getLastName() + " " + user.getFirstName())
                 .courseTitle(course.getTitle())
                 .courseThumbnail(course.getThumbnail())
+                .courseId(course.getId())
                 .authorFullName(course.getAuthor().getFirstName() + " " + course.getAuthor().getLastName())
                 .reason(report.getReason())
                 .description(report.getDescription())

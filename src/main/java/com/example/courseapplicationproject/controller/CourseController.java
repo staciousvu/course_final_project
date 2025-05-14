@@ -25,6 +25,14 @@ public class CourseController {
         courseService.removeCourse_activeFalse(courseId);
         return ApiResponse.success(null,"OK");
     }
+    @GetMapping("/accepted-author")
+    public ApiResponse<List<CourseDTO>> coursesAcceptedForAuthor() {
+        return ApiResponse.success(courseService.getAcceptedCoursesForAuthor(),"OK");
+    }
+    @GetMapping("/check-before-submit/{courseId}")
+    public ApiResponse<Boolean> checkCourseBeforeSubmit(@PathVariable Long courseId) {
+        return ApiResponse.success(courseService.isCourseValid(courseId),"OK");
+    }
     @GetMapping("/courses/accepted")
     public ApiResponse<List<CourseResponse>> getAllCourseAccept(
             @RequestParam(required = false) List<String> sortBy,

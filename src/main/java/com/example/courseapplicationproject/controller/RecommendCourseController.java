@@ -25,6 +25,10 @@ public class RecommendCourseController {
     public ApiResponse<RecommendCourseCategoryRoot> getRecommendRoot() {
         return ApiResponse.success(recommendCourseService.getRecommendCoursesByPreferenceRoot(), "successful");
     }
+    @GetMapping("/recommend-admin")
+    public ApiResponse<List<RecommendCourseCategoryLeafs>> getRecommendAdmin() {
+        return ApiResponse.success(recommendCourseService.getRecommendAdminCourse(), "successful");
+    }
 
     @GetMapping("/leafs")
     public ApiResponse<List<RecommendCourseCategoryLeafs>> getRecommendLeafs() {

@@ -71,7 +71,6 @@ public class CourseContentService {
             return content;
         }).collect(Collectors.toList());
 
-        courseRequirementRepository.saveAll(contentList2);
         List<CourseTarget> targetList = targets.stream().map(dto -> {
             CourseTarget target = new CourseTarget();
             target.setTitle(dto.getTitle());

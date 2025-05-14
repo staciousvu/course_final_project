@@ -12,6 +12,7 @@ import lombok.experimental.FieldDefaults;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.bind.annotation.*;
 
+import java.io.IOException;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 
@@ -38,7 +39,7 @@ public class LectureController {
 
 
     @PostMapping("/upload")
-    public ApiResponse<Void> uploadLecture(@ModelAttribute LectureUploadRequest request) throws ExecutionException, InterruptedException {
+    public ApiResponse<Void> uploadLecture(@ModelAttribute LectureUploadRequest request) throws ExecutionException, InterruptedException, IOException {
         log.info("Received request to upload lecture video for ID: {}", request.getLectureId());
         lectureService.uploadLecture(request);
         return ApiResponse.success(null,"OK");

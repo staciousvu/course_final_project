@@ -59,8 +59,12 @@ public enum ErrorCode {
     QUESTION_NOT_FOUND(1043,"Question not found",HttpStatus.NOT_FOUND),
     ANSWER_NOT_FOUND(1044,"Answer not found",HttpStatus.NOT_FOUND),
     SLIDE_NOT_FOUND(1045,"Slide not found",HttpStatus.NOT_FOUND),
-    REPORT_NOT_FOUND(1046,"Report not found", HttpStatus.NOT_FOUND)
-    ;
+    REPORT_NOT_FOUND(1046,"Report not found", HttpStatus.NOT_FOUND),
+    POST_NOT_FOUND(1046,"Post not found", HttpStatus.NOT_FOUND),
+    ADS_APPLY_NOT_FOUND(1047,"ads apply not found", HttpStatus.NOT_FOUND),
+    BAD_REQUEST(1048,"Bad request" , HttpStatus.BAD_REQUEST ),
+    ADVERTISEMENT_NOT_FOUND(1049,"advertisement not found", HttpStatus.NOT_FOUND),
+    AD_PACKAGE_NOT_FOUND(1050,"ad package not found", HttpStatus.NOT_FOUND);
     private int code;
     private String message;
     private HttpStatusCode httpStatusCode;

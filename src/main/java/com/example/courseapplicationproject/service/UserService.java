@@ -60,11 +60,12 @@ public class UserService implements IUserService {
     UserMapper userMapper;
     UserRepository userRepository;
     RedisService redisService;
+    MailService mailService;
 //    RabbitTemplate rabbitTemplate;
     RoleRepository roleRepository;
     PasswordEncoder passwordEncoder;
     CloudinaryService cloudinaryService;
-    KafkaTemplate<String,Object> kafkaTemplate;
+//    KafkaTemplate<String,Object> kafkaTemplate;
     @Override
     @PreAuthorize("isAuthenticated()")
     public UserResponse myInfo() {
@@ -94,7 +95,8 @@ public class UserService implements IUserService {
                 .param(Map.of("otp", otp, "companyName", company))
                 .build();
 
-        kafkaTemplate.send("register", notificationEvent);
+//        kafkaTemplate.send("register", notificationEvent);
+        mailService.register(notificationEvent);
     }
 
     @Override
@@ -142,7 +144,12 @@ public class UserService implements IUserService {
                 .param(Map.of("otp", otp))
                 .build();
 
-        kafkaTemplate.send("reset-password", event);
+//        kafkaTemplate.send("reset-password", event);
+        try {
+            mailService.resetPassword(event);
+        } catch (MessagingException e) {
+            throw new RuntimeException(e);
+        }
     }
 
     @Override
