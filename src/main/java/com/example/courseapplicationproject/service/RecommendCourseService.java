@@ -63,7 +63,7 @@ public class RecommendCourseService {
             if (courses.isEmpty()) continue;
             RecommendCourseCategoryLeafs recommendCourseCategoryLeafs = new RecommendCourseCategoryLeafs();
             recommendCourseCategoryLeafs.setCategoryName(
-                    courses.getFirst().getCategory().getName());
+                    courses.get(0).getCategory().getName());
 
             // Lấy danh sách ID khóa học
             List<Long> courseIds = courses.stream().map(Course::getId).toList();
