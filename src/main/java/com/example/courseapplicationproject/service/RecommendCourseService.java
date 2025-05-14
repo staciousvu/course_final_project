@@ -167,7 +167,7 @@ public class RecommendCourseService {
             Pageable pageable = PageRequest.of(0, 5);
             List<Course> courses = courseRepository.findTopCoursesByCategoryExcludeEnrolled(categoryId,user.getId(), pageable);
             recommendCourseCategoryLeafs.setCategoryName(
-                    courses.getFirst().getCategory().getName());
+                    courses.get(0).getCategory().getName());
             if (courses.isEmpty()) continue; // Bỏ qua nếu không có khóa học
             // Lấy danh sách ID khóa học
             List<Long> courseIds = courses.stream().map(Course::getId).toList();
@@ -208,7 +208,7 @@ public class RecommendCourseService {
                     .build();
         }
         Category category = userActivities.get(0).getCourse().getCategory();
-//        Long selectedCategoryId = userActivities.getFirst().getCourse().getCategory().getId();
+//        Long selectedCategoryId = userActivities.get(0).getCourse().getCategory().getId();
         Long selectedCategoryId = null;
         if (!userActivities.isEmpty()) {
             selectedCategoryId = userActivities.get(0).getCourse().getCategory().getId();
