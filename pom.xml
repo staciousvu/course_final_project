@@ -11,6 +11,7 @@
     <groupId>com.example</groupId>
     <artifactId>CourseApplicationProject</artifactId>
     <version>0.0.1-SNAPSHOT</version>
+    <packaging>war</packaging>
     <name>CourseApplicationProject</name>
     <description>CourseApplicationProject</description>
     <url/>
@@ -27,7 +28,7 @@
         <url/>
     </scm>
     <properties>
-        <java.version>21</java.version>
+        <java.version>17</java.version>
     </properties>
     <dependencies>
         <!-- https://mvnrepository.com/artifact/com.google.cloud/google-cloud-storage -->
