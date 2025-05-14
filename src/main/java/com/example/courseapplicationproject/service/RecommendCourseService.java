@@ -208,7 +208,12 @@ public class RecommendCourseService {
                     .build();
         }
         Category category = userActivities.getFirst().getCourse().getCategory();
-        Long selectedCategoryId = userActivities.getFirst().getCourse().getCategory().getId();
+//        Long selectedCategoryId = userActivities.getFirst().getCourse().getCategory().getId();
+        Long selectedCategoryId = null;
+        if (!userActivities.isEmpty()) {
+            selectedCategoryId = userActivities.get(0).getCourse().getCategory().getId();
+        }
+
         Pageable pageable = PageRequest.of(0, 5);
         List<Course> courseslist = courseRepository.findTopCoursesByCategoryExcludeEnrolled(selectedCategoryId,user.getId(),pageable);
         List<Long> ids = courseslist.stream().map(Course::getId).toList();
