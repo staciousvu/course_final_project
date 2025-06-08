@@ -25,9 +25,18 @@ public class Lecture extends AbstractEntity<Long> {
     @Column(name = "title", nullable = false)
     String title;
 
-    @Enumerated(EnumType.STRING)
-    @Column(name = "type", nullable = false)
-    LectureType type;
+//    @Enumerated(EnumType.STRING)
+//    @Column(name = "type", nullable = false)
+//    LectureType type;
+    @Column(name = "document_url")
+    String documentUrl; // <-- mới thêm
+
+    @Column(name = "course_id",nullable = true)
+    Long courseId;
+
+    @Column(name = "previewable")
+    boolean previewable=false; // <-- mới thêm
+
 
     @Column(name = "content_url")
     String contentUrl;

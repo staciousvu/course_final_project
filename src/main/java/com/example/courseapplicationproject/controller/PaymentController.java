@@ -34,6 +34,13 @@ public class PaymentController {
     VNPayService vnPayService;
     CourseService courseService;
     AdvertisementService advertisementService;
+    @PostMapping("/pay-free-course")
+    public ApiResponse<Void> payFreeCourse(@RequestBody PaymentRequest paymentRequest) {
+//        Payment payment = paymentService.createPayment(paymentRequest);
+        courseService.enrollFreeCourse(paymentRequest);
+//        paymentService.updatePaymentStatusToSuccess(payment.getTransactionId());
+        return ApiResponse.success(null,"OK");
+    }
 
     @PostMapping("/vn-pay")
     public ApiResponse<String> pay(@RequestBody PaymentRequest paymentRequest, HttpServletRequest request) {

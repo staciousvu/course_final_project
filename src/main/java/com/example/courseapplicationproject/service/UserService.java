@@ -74,6 +74,10 @@ public class UserService implements IUserService {
         User user = userRepository.findByEmail(email).orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND));
         return userMapper.userToUserResponse(user);
     }
+    public UserResponse getInfoById(Long id) {
+        User user = userRepository.findById(id).orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND));
+        return userMapper.userToUserResponse(user);
+    }
     @Override
     public void sentOtpRegister(UserRequestCreation request) throws MessagingException {
         if (userRepository.existsByEmail(request.getEmail())) {
@@ -122,7 +126,7 @@ public class UserService implements IUserService {
                 .email(email)
                 .password(passwordEncoder.encode(request.getPassword()))
                 .isEnabled(true)
-                .isTeacherApproved(false)
+//                .isTeacherApproved(false)
 //                .isDeleted(false)
                 .build();
 //        userRepository.save(user);

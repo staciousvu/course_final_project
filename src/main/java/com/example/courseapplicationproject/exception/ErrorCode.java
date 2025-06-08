@@ -14,10 +14,10 @@ import lombok.experimental.FieldDefaults;
 public enum ErrorCode {
     USER_EXISTED(1000, "User already existed", HttpStatus.BAD_REQUEST),
     GENERATE_TOKEN_FAILED(1001, "Generate token failed", HttpStatus.BAD_REQUEST),
-    AUTHENTICATION_FAILED(1002, "Wrong password ,retype password", HttpStatus.UNAUTHORIZED),
-    ACCOUNT_BANNED(1003, "Account banned", HttpStatus.UNAUTHORIZED),
+    AUTHENTICATION_FAILED(1002, "Mật khẩu sai ,vui lòng nhập lại", HttpStatus.UNAUTHORIZED),
+    ACCOUNT_BANNED(1003, "Tài khoản đã bị khóa", HttpStatus.UNAUTHORIZED),
     ROLE_NOT_FOUND(1004, "Role not found", HttpStatus.NOT_FOUND),
-    USER_NOT_FOUND(1005, "Email not found ,retype valid email", HttpStatus.NOT_FOUND),
+    USER_NOT_FOUND(1005, "Email không tồn tại", HttpStatus.NOT_FOUND),
     EXPIRED_TOKEN(1006, "Expired token", HttpStatus.UNAUTHORIZED),
     INVALID_TOKEN(1007, "Invalid token", HttpStatus.UNAUTHORIZED),
     ACCESS_DENIED(1008, "Access denied , you can't access this resources", HttpStatus.FORBIDDEN),
@@ -64,7 +64,9 @@ public enum ErrorCode {
     ADS_APPLY_NOT_FOUND(1047,"ads apply not found", HttpStatus.NOT_FOUND),
     BAD_REQUEST(1048,"Bad request" , HttpStatus.BAD_REQUEST ),
     ADVERTISEMENT_NOT_FOUND(1049,"advertisement not found", HttpStatus.NOT_FOUND),
-    AD_PACKAGE_NOT_FOUND(1050,"ad package not found", HttpStatus.NOT_FOUND);
+    AD_PACKAGE_NOT_FOUND(1050,"ad package not found", HttpStatus.NOT_FOUND),
+    INVALID_VIDEO_FORMAT(1051,"INVALID_VIDEO_FORMAT",HttpStatus.BAD_REQUEST),
+    FILE_PROCESSING_FAILED(1052,"FILE_PROCESSING_FAILED" ,HttpStatus.BAD_REQUEST ),;
     private int code;
     private String message;
     private HttpStatusCode httpStatusCode;

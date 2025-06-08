@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+  <meta charset="UTF-8">
+  <title>Từ chối khóa học - [[${companyName}]]</title>
+</head>
+<body style="font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f9fafb; padding: 40px; color: #1f2937;">
+
+<div style="max-width: 600px; margin: auto; background-color: #ffffff; border-radius: 12px; padding: 30px; box-shadow: 0 4px 12px rgba(0,0,0,0.05);">
+  <h2 style="font-size: 24px; font-weight: 700; margin-bottom: 20px; color: #dc2626;" th:text="${messageTitle}">Khóa học đã bị từ chối</h2>
+
+  <!-- Hình ảnh khóa học -->
+  <div th:if="${courseImage != null}" style="margin: 20px 0;">
+    <img th:src="${courseImage}" alt="Hình ảnh khóa học"
+         style="width: 100%; height: auto; border-radius: 10px; border: 1px solid #e5e7eb;">
+  </div>
+
+  <!-- Nội dung thông báo -->
+  <p style="font-size: 16px; margin-bottom: 20px;" th:text="${messageBody}">
+    Xin chào, khóa học của bạn đã bị từ chối.
+  </p>
+
+  <!-- Lý do từ chối -->
+  <div th:if="${reason != null}" style="background-color: #fef2f2; border: 1px solid #fecaca; border-radius: 8px; padding: 16px; margin-bottom: 20px;">
+    <strong style="color: #b91c1c;">Lý do từ chối:</strong>
+    <p style="margin: 8px 0 0 0; color: #991b1b;" th:text="${reason}">Nội dung lý do sẽ được hiển thị ở đây.</p>
+  </div>
+
+  <!-- Nút hành động -->
+  <div th:if="${actionUrl != null}">
+    <a th:href="${actionUrl}"
+       th:text="${actionLabel}"
+       style="display: inline-block; background-color: #2563eb; color: white; padding: 12px 24px; border-radius: 8px; text-decoration: none; font-weight: 600;">
+      Chỉnh sửa khóa học
+    </a>
+  </div>
+
+  <!-- Footer -->
+  <p style="margin-top: 30px; font-size: 14px;">Trân trọng,</p>
+  <p style="font-weight: bold;" th:text="${companyName}">Eduflow Platform</p>
+</div>
+</body>
+</html>

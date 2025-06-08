@@ -85,6 +85,10 @@ public class Course extends AbstractEntity<Long> {
     @Column(name = "isActive")
     IsActive isActive;
 
+//    Long rootId;
+//
+//    Long subId;
+
     @Column(name = "thumbnail")
     String thumbnail;
 

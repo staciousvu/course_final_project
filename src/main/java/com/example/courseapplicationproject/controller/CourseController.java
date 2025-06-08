@@ -2,9 +2,11 @@ package com.example.courseapplicationproject.controller;
 
 import com.example.courseapplicationproject.dto.request.CourseUpdateRequest;
 import com.example.courseapplicationproject.dto.request.FilterRequest;
+import com.example.courseapplicationproject.dto.request.RejectRequest;
 import com.example.courseapplicationproject.dto.response.*;
 import com.example.courseapplicationproject.entity.Course;
 import com.example.courseapplicationproject.service.CourseService;
+import jakarta.mail.MessagingException;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
@@ -21,8 +23,13 @@ import java.util.List;
 public class CourseController {
     CourseService courseService;
     @PostMapping("/remove/{courseId}")
-    public ApiResponse<Void> removeCourse(@PathVariable Long courseId) {
-        courseService.removeCourse_activeFalse(courseId);
+    public ApiResponse<Void> removeCourse(@PathVariable Long courseId, @RequestBody RejectRequest request) throws MessagingException {
+        courseService.removeCourse_activeFalse(courseId,request.getReason());
+        return ApiResponse.success(null,"OK");
+    }
+    @PostMapping("/open/{courseId}")
+    public ApiResponse<Void> openCourse(@PathVariable Long courseId) throws MessagingException {
+        courseService.openCourse_activeTrue(courseId);
         return ApiResponse.success(null,"OK");
     }
     @GetMapping("/accepted-author")
@@ -85,6 +92,14 @@ public class CourseController {
     ) {
         return ApiResponse.success(courseService.getAllCourseStatus(Course.CourseStatus.REJECTED,keyword, page, size),"OK");
     }
+    @GetMapping("blocked-courses")
+    public ApiResponse<Page<CourseResponse>> getBlockedCourses(
+            @RequestParam("keyword") String keyword,
+            @RequestParam(defaultValue = "0") Integer page,
+            @RequestParam(defaultValue = "200") Integer size
+    ) {
+        return ApiResponse.success(courseService.getAllCourseInactive(keyword, page, size),"OK");
+    }
     @GetMapping("draft-courses")
     public ApiResponse<Page<CourseResponse>> getDraftCourses(
             @RequestParam("keyword") String keyword,
@@ -142,15 +157,15 @@ public class CourseController {
     }
 
     @PutMapping("/{courseId}/accept")
-    public ApiResponse<Void> acceptCourse(@PathVariable Long courseId) {
+    public ApiResponse<Void> acceptCourse(@PathVariable Long courseId) throws MessagingException {
         courseService.acceptCourse(courseId);
         return ApiResponse.success(null, "Course accepted");
     }
 
     @PutMapping("/{courseId}/reject")
     public ApiResponse<Void> rejectCourse(
-            @PathVariable Long courseId) {
-        courseService.rejectCourse(courseId);
+            @PathVariable Long courseId,@RequestBody RejectRequest request) throws MessagingException {
+        courseService.rejectCourse(courseId,request.getReason());
         return ApiResponse.success(null, "Course rejected");
     }
 

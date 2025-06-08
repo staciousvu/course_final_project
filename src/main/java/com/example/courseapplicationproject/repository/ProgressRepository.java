@@ -26,4 +26,5 @@ public interface ProgressRepository extends JpaRepository<CourseProgress, Long> 
             "WHERE cp.course.id = :courseId AND cp.user.id = :userId")
     List<Object[]> findLectureProgressByCourseIdAndUserId(@Param("courseId") Long courseId,
                                                           @Param("userId") Long userId);
+    long countByUserIdAndCourseIdAndIsCompletedTrue(Long userId, Long courseId);
 }

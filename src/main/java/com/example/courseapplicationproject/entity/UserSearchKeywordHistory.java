@@ -8,7 +8,7 @@ import lombok.*;
 import lombok.experimental.FieldDefaults;
 
 @Entity
-@Table
+@Table(name = "`user_search_keyword_history`")
 @Getter
 @Setter
 @AllArgsConstructor

@@ -87,6 +87,15 @@ public class FavoriteService {
                     .build();
         });
     }
+    public boolean isCourseInFavorite(Long courseId) {
+        String email = SecurityContextHolder.getContext().getAuthentication().getName();
+        User user = userRepository.findByEmail(email).orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND));
+
+        Course course =
+                courseRepository.findById(courseId).orElseThrow(() -> new AppException(ErrorCode.COURSE_NOT_FOUND));
+
+        return favoriteRepository.existsByUserIdAndCourseId(user.getId(), course.getId());
+    }
 
 
     @Transactional

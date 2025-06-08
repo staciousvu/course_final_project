@@ -2,7 +2,8 @@ package com.example.courseapplicationproject.controller;
 
 import com.example.courseapplicationproject.dto.request.LectureCreateRequest;
 import com.example.courseapplicationproject.dto.request.LectureUpdateRequest;
-import com.example.courseapplicationproject.dto.request.LectureUploadRequest;
+import com.example.courseapplicationproject.dto.request.LectureUploadDocumentRequest;
+import com.example.courseapplicationproject.dto.request.LectureUploadVideoRequest;
 import com.example.courseapplicationproject.dto.response.ApiResponse;
 import com.example.courseapplicationproject.dto.response.LectureResponse;
 import com.example.courseapplicationproject.service.LectureService;
@@ -13,7 +14,6 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.bind.annotation.*;
 
 import java.io.IOException;
-import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 
 @RestController
@@ -36,13 +36,23 @@ public class LectureController {
         lectureService.updateLecture(lectureId, lectureUpdateRequest.getTitle());
         return ApiResponse.success(null, "Lecture updated successfully");
     }
+    @PutMapping("/edit-preview/{lectureId}")
+    public ApiResponse<Void> updateLecture(@PathVariable Long lectureId) {
+        log.info("Received request to update lecture with id: {}", lectureId);
+        lectureService.updatePreviewableVideo(lectureId);
+        return ApiResponse.success(null, "Lecture updated successfully");
+    }
 
 
-    @PostMapping("/upload")
-    public ApiResponse<Void> uploadLecture(@ModelAttribute LectureUploadRequest request) throws ExecutionException, InterruptedException, IOException {
+    @PostMapping("/upload-video")
+    public ApiResponse<Void> uploadLectureVideo(@ModelAttribute LectureUploadVideoRequest request) throws ExecutionException, InterruptedException, IOException {
         log.info("Received request to upload lecture video for ID: {}", request.getLectureId());
-        lectureService.uploadLecture(request);
+        lectureService.uploadLectureVideo(request);
         return ApiResponse.success(null,"OK");
+    }
+    @PostMapping("/upload-document")
+    public ApiResponse<String> uploadLectureDocument(@ModelAttribute LectureUploadDocumentRequest request) throws ExecutionException, InterruptedException, IOException {
+        return ApiResponse.success(lectureService.uploadLectureDocument(request),"OK");
     }
 
     @DeleteMapping("/{lectureId}")

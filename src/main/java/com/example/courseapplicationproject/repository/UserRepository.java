@@ -40,7 +40,7 @@ public interface UserRepository extends JpaRepository<User, Long> {
 
     @Query("SELECT u FROM User u JOIN u.roles r " +
             "WHERE r.roleName = 'INSTRUCTOR' " +
-            "AND u.isEnabled = true " +
+//            "AND u.isEnabled = true " +
             "AND (:keyword IS NULL OR LOWER(u.email) LIKE LOWER(CONCAT('%', :keyword, '%')) " +
             "OR LOWER(u.firstName) LIKE LOWER(CONCAT('%', :keyword, '%')) " +
             "OR LOWER(u.lastName) LIKE LOWER(CONCAT('%', :keyword, '%')))")

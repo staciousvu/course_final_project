@@ -17,6 +17,7 @@ public class AdsApplyResponse {
     // Advertisement info
     private Long advertisementId;
     private String packageName;
+    private int duration;
 
     // Course info
     private Long courseId;

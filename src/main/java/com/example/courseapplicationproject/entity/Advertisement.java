@@ -27,6 +27,10 @@ public class Advertisement extends AbstractEntity<Long>{
     @JoinColumn(name = "ad_package_id", nullable = false)
     AdPackage adPackage;
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "course_id", nullable = true)
+    Course course;
+
     boolean used = false;
 
     LocalDateTime startDate;

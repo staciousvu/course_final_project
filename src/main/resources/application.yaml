@@ -19,26 +19,26 @@ spring:
       host: holy-possum-12879.upstash.io
       port: 6379
       password: ATJPAAIjcDFmNjk3OTI1YmYyN2U0MTRlOWUzNTg3ZmI3MjlhM2FmNXAxMA
-  kafka:
-    client:
-      dns:
-        lookup: use_dns_cache
-    bootstrap-servers: localhost:9092
-    consumer:
-      group-id: notification-group
-      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
-      value-deserializer: org.springframework.kafka.support.serializer.JsonDeserializer
-      properties:
-        spring.json.trusted.packages: '*'
-    producer:
-      key-serializer: org.apache.kafka.common.serialization.StringSerializer
-      value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
-
-logging:
-  level:
-    org:
-      apache:
-        kafka: warn
+#  kafka:
+#    client:
+#      dns:
+#        lookup: use_dns_cache
+#    bootstrap-servers: localhost:9092
+#    consumer:
+#      group-id: notification-group
+#      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+#      value-deserializer: org.springframework.kafka.support.serializer.JsonDeserializer
+#      properties:
+#        spring.json.trusted.packages: '*'
+#    producer:
+#      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+#      value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
+#
+#logging:
+#  level:
+#    org:
+#      apache:
+#        kafka: warn
 
 
 

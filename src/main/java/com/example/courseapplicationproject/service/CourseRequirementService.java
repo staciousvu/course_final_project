@@ -30,7 +30,9 @@ public class CourseRequirementService {
     public List<CourseRequirementDTO> getAllRequirements(Long courseId) {
         Sort sort = Sort.by(Sort.Direction.ASC, "id");
 
-        return courseRequirementRepository.findAll(sort).stream().map(
+        return courseRequirementRepository.findAll(sort).stream()
+                .filter(requirement -> requirement.getCourse().getId().equals(courseId))
+                .map(
                 courseContent -> {
                     CourseRequirementDTO courseRequirementDTO = new CourseRequirementDTO();
                     courseRequirementDTO.setId(courseContent.getId());

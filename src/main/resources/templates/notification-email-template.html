@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>Thông báo từ [[${companyName}]]</title>
+</head>
+<body style="font-family: Arial, sans-serif; line-height: 1.6; padding: 20px;">
+<h2 th:text="${messageTitle}">Tiêu đề thông báo</h2>
+
+<!-- Hình ảnh khóa học nếu có -->
+<div th:if="${courseImage != null}" style="margin: 20px 0;">
+    <img th:src="${courseImage}" alt="Hình ảnh khóa học" style="max-width: 100%; height: auto; border-radius: 8px;">
+</div>
+
+<p th:text="${messageBody}">
+    Nội dung thông báo sẽ hiển thị ở đây.
+</p>
+
+<!-- Nút hành động nếu có -->
+<div th:if="${actionUrl != null}" style="margin-top: 20px;">
+    <a th:href="${actionUrl}"
+       th:text="${actionLabel}"
+       style="display: inline-block; padding: 10px 20px; background-color: #007bff; color: white; text-decoration: none; border-radius: 4px;">
+        Thực hiện hành động
+    </a>
+</div>
+
+<br>
+<p>Trân trọng,</p>
+<p><strong th:text="${companyName}">Tên công ty</strong></p>
+</body>
+</html>

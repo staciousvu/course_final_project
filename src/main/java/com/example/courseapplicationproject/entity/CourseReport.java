@@ -13,10 +13,17 @@ import lombok.experimental.FieldDefaults;
 @Builder
 @FieldDefaults(level = AccessLevel.PRIVATE)
 public class CourseReport extends AbstractEntity<Long> {
+    public enum ReportType{
+        STUDENT,TEACHER
+    }
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "user_id", nullable = false)
     User user;
+
+    @Enumerated(EnumType.STRING)
+    ReportType reportType;
+
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "course_id", nullable = false)

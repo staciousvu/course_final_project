@@ -16,6 +16,7 @@ import java.util.List;
 @Builder
 @FieldDefaults(level = AccessLevel.PRIVATE)
 public class QuizQuestion extends AbstractEntity<Integer> {
+    @Column(columnDefinition = "LONGTEXT")
     String content;
 
     @ManyToOne(fetch = FetchType.LAZY)

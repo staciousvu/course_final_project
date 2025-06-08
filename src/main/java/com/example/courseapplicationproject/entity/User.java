@@ -57,8 +57,8 @@ public class User extends AbstractEntity<Long> {
 //    @Column(name = "is_deleted")
 //    Boolean isDeleted;
 
-    @Column(name = "is_teacher_approved", nullable = false, columnDefinition = "BOOLEAN DEFAULT FALSE")
-    Boolean isTeacherApproved;
+//    @Column(name = "is_teacher_approved", nullable = false, columnDefinition = "BOOLEAN DEFAULT FALSE")
+//    Boolean isTeacherApproved;
 
     @Column(name = "facebook_url", length = 255)
     String facebookUrl;

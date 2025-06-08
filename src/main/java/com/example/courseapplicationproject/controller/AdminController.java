@@ -41,9 +41,9 @@ public class AdminController {
     public ApiResponse<String> uploadAvatar(@RequestParam("avatar") MultipartFile avatar) {
         return ApiResponse.success(adminService.uploadAvatar(avatar), "OK");
     }
-    @PutMapping("/{id}/block")
-    public ApiResponse<Void> blockUser(@PathVariable Long id) {
-        adminService.blockUser(id);
+    @PutMapping("/{id}/toggle-active")
+    public ApiResponse<Void> toggleActiveUser(@PathVariable Long id) {
+        adminService.toggleActiveUser(id);
         return ApiResponse.success(null,"OK");
     }
 }

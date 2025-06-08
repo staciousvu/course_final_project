@@ -23,6 +23,7 @@ import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.transaction.annotation.Transactional;
 
 @RequiredArgsConstructor
 @FieldDefaults(makeFinal = true, level = AccessLevel.PRIVATE)
@@ -159,10 +160,10 @@ public class RecommendCourseService {
             return Collections.emptyList();
         }
         // Chỉ lấy tối đa 2 category đầu tiên
-        List<Long> selectedCategories =
-                subCategoriesLeafIds.size() > 2 ? subCategoriesLeafIds.subList(0, 2) : subCategoriesLeafIds;
+//        List<Long> selectedCategories =
+//                subCategoriesLeafIds.size() > 2 ? subCategoriesLeafIds.subList(0, 2) : subCategoriesLeafIds;
         List<RecommendCourseCategoryLeafs> recommendCourseCategoryLeafsRespons = new ArrayList<>();
-        for (Long categoryId : selectedCategories) {
+        for (Long categoryId : subCategoriesLeafIds) {
             RecommendCourseCategoryLeafs recommendCourseCategoryLeafs = new RecommendCourseCategoryLeafs();
             Pageable pageable = PageRequest.of(0, 5);
             List<Course> courses = courseRepository.findTopCoursesByCategoryExcludeEnrolled(categoryId,user.getId(), pageable);
@@ -197,6 +198,7 @@ public class RecommendCourseService {
         return recommendCourseCategoryLeafsRespons;
     }
 
+    @Transactional
     public RecommendCourseCategoryRoot getRecommendCoursesByUserActivity() {
         String email = SecurityContextHolder.getContext().getAuthentication().getName();
         User user = userRepository.findByEmail(email).orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND));
@@ -240,6 +242,7 @@ public class RecommendCourseService {
                 .build();
     }
 
+    @Transactional
     public List<RecommendCourseKeyword> getRecommendByUserSearchHistory() {
         String email = SecurityContextHolder.getContext().getAuthentication().getName();
         User user = userRepository.findByEmail(email)
@@ -261,9 +264,7 @@ public class RecommendCourseService {
             recommendCourseKeyword.setKeyword(keyword);
 
             // Tìm danh sách courseId từ elasticsearch
-            List<Long> courseIds = courseElasticService.fuzzySearch(keyword).stream()
-                    .map(Long::parseLong)
-                    .toList();
+            List<Long> courseIds = courseRepository.findByKeywordHomePage(keyword,user.getId()).stream().map(Course::getId).toList();
 
             // Tính trung bình rating và số lượng rating cho các khóa học
             Map<Long, Double> avgRatingForCourses = getAverageRatings(courseIds);
@@ -302,7 +303,7 @@ public class RecommendCourseService {
     public List<CourseResponse> getRecommendCoursesByRelatedCoursesEnrolled() {
         String email = SecurityContextHolder.getContext().getAuthentication().getName();
         User user = userRepository.findByEmail(email).orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND));
-        PageRequest pageRequest = PageRequest.of(0, 2);
+        PageRequest pageRequest = PageRequest.of(0, 5);
         List<Long> idsCoursesEnrolled = enrollRepository.getIdsEnrolledCourseLatestByUserId(user.getId(), pageRequest);
         PageRequest pageRequestRelated = PageRequest.of(0, 5);
         List<Course> relatedEnrolledCourses =

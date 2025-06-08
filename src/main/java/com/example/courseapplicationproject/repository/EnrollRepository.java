@@ -32,12 +32,21 @@ public interface EnrollRepository extends JpaRepository<Enrollment, Long> {
     )
     SELECT
         DATE_FORMAT(ds.report_date,'%d-%m-%Y') AS date,
-        IFNULL(SUM(pd.price * 0.5), 0) AS value
+        IFNULL(SUM(
+            CASE 
+                WHEN c.author_id = :teacherId AND (:courseId IS NULL OR c.id = :courseId)
+                THEN pd.price
+                ELSE 0
+            END
+        ), 0) AS value
     FROM date_series ds
     LEFT JOIN payment_details pd 
         ON DATE(pd.created_at) = ds.report_date
     LEFT JOIN course c 
-        ON pd.course_id = c.id AND c.author_id = :teacherId AND (:courseId IS NULL OR c.id = :courseId)
+        ON pd.course_id = c.id
+    LEFT JOIN payment p
+        ON pd.payment_id = p.id
+    WHERE p.payment_status = 'SUCCESS'
     GROUP BY ds.report_date
     ORDER BY ds.report_date
     """, nativeQuery = true)
@@ -46,7 +55,6 @@ public interface EnrollRepository extends JpaRepository<Enrollment, Long> {
             @Param("courseId") Long courseId,
             @Param("days") int days
     );
-
 
     // Doanh thu theo tháng
     @Query(value = """
@@ -59,12 +67,21 @@ public interface EnrollRepository extends JpaRepository<Enrollment, Long> {
     )
     SELECT
         DATE_FORMAT(ms.report_date, '%m-%Y') AS date,
-        IFNULL(SUM(pd.price * 0.5), 0) AS value
+        IFNULL(SUM(
+            CASE 
+                WHEN c.author_id = :teacherId AND (:courseId IS NULL OR c.id = :courseId) 
+                THEN pd.price
+                ELSE 0 
+            END
+        ), 0) AS value
     FROM month_series ms
     LEFT JOIN payment_details pd 
         ON DATE_FORMAT(pd.created_at, '%m-%Y') = DATE_FORMAT(ms.report_date, '%m-%Y')
     LEFT JOIN course c 
-        ON pd.course_id = c.id AND c.author_id = :teacherId AND (:courseId IS NULL OR c.id = :courseId)
+        ON pd.course_id = c.id
+    LEFT JOIN payment p
+        ON pd.payment_id = p.id
+    WHERE p.payment_status = 'SUCCESS'
     GROUP BY ms.report_date
     ORDER BY ms.report_date
     """, nativeQuery = true)
@@ -73,6 +90,88 @@ public interface EnrollRepository extends JpaRepository<Enrollment, Long> {
             @Param("courseId") Long courseId,
             @Param("months") int months
     );
+    @Query("""
+    SELECT SUM(
+        CASE
+            WHEN p.orderType = 'COURSE' THEN p.totalAmount * 0.5
+            WHEN p.orderType = 'AD' THEN p.totalAmount
+            ELSE 0
+        END
+    )
+    FROM Payment p
+    WHERE p.paymentStatus = 'SUCCESS'
+      AND FUNCTION('MONTH', p.createdAt) = FUNCTION('MONTH', CURRENT_DATE)
+      AND FUNCTION('YEAR', p.createdAt) = FUNCTION('YEAR', CURRENT_DATE)
+""")
+    BigDecimal getProfitAdsAndCourseThisMonth();
+    @Query("""
+    SELECT COUNT(DISTINCT e.user.id)
+    FROM Enrollment e
+    WHERE FUNCTION('MONTH', e.createdAt) = FUNCTION('MONTH', CURRENT_DATE)
+      AND FUNCTION('YEAR', e.createdAt) = FUNCTION('YEAR', CURRENT_DATE)
+""")
+    Long countUniqueUsersEnrolledThisMonth();
+    @Query("""
+    SELECT COUNT(c)
+    FROM Course c
+    WHERE c.status = 'ACCEPTED'
+""")
+    Long countAcceptedCourses();
+    @Query("""
+    SELECT COUNT(DISTINCT u)
+    FROM User u
+    JOIN u.courses c
+    WHERE c.status = 'ACCEPTED'
+""")
+    Long countUsersWithAcceptedCourses();
+
+
+
+    @Query("""
+    select sum(pd.price)
+    from PaymentDetails pd
+    where pd.course.author.id = :teacherId
+    and pd.payment.paymentStatus = 'SUCCESS'
+      and (:courseId IS NULL OR pd.course.id = :courseId)
+    """)
+    BigDecimal getTotalRevenue(@Param("teacherId") Long teacherId, @Param("courseId") Long courseId);
+
+
+    @Query("""
+    select sum(pd.price)
+    from PaymentDetails pd
+    where pd.course.author.id = :teacherId
+    and pd.payment.paymentStatus = 'SUCCESS'
+      and (:courseId IS NULL OR pd.course.id = :courseId)
+      and MONTH(pd.payment.createdAt) = MONTH(CURRENT_DATE)
+      and YEAR(pd.payment.createdAt) = YEAR(CURRENT_DATE)
+    """)
+    BigDecimal getTotalRevenueThisMonth(@Param("teacherId") Long teacherId, @Param("courseId") Long courseId);
+
+
+    @Query("""
+    select count(e)
+    from Enrollment e
+    where e.course.author.id = :teacherId
+      and (:courseId IS NULL OR e.course.id = :courseId)
+    """)
+    Integer countTotalEnrollmentsByTeacher(@Param("teacherId") Long teacherId, @Param("courseId") Long courseId);
+
+
+    @Query("""
+    select count(e)
+    from Enrollment e
+    where e.course.author.id = :teacherId
+      and (:courseId IS NULL OR e.course.id = :courseId)
+      and MONTH(e.createdAt) = MONTH(CURRENT_DATE)
+      and YEAR(e.createdAt) = YEAR(CURRENT_DATE)
+    """)
+    Integer countMonthlyEnrollmentsByTeacher(@Param("teacherId") Long teacherId, @Param("courseId") Long courseId);
+
+
+
+
+
 
 
 
@@ -164,4 +263,35 @@ public interface EnrollRepository extends JpaRepository<Enrollment, Long> {
                                                                            @Param("search") String search,
                                                                            @Param("status") String status,
                                                                            Pageable pageable);
+    @Query("""
+    SELECT SUM(p.totalAmount * 0.5)
+    FROM Payment p
+    WHERE p.orderType = 'COURSE'
+      AND p.paymentStatus = 'SUCCESS'
+      AND FUNCTION('MONTH', p.createdAt) = FUNCTION('MONTH', CURRENT_DATE)
+      AND FUNCTION('YEAR', p.createdAt) = FUNCTION('YEAR', CURRENT_DATE)
+""")
+    BigDecimal getCourseProfit();
+
+
+    @Query("""
+    SELECT SUM(p.totalAmount)
+    FROM Payment p
+    WHERE p.orderType = 'AD'
+      AND p.paymentStatus = 'SUCCESS'
+      AND FUNCTION('MONTH', p.createdAt) = FUNCTION('MONTH', CURRENT_DATE)
+      AND FUNCTION('YEAR', p.createdAt) = FUNCTION('YEAR', CURRENT_DATE)
+""")
+    BigDecimal getAdProfit();
+    @Query("""
+    SELECT FUNCTION('MONTH', e.createdAt),
+           COUNT(DISTINCT e.user.id)
+    FROM Enrollment e
+    WHERE e.createdAt >= :startDate
+    GROUP BY FUNCTION('MONTH', e.createdAt)
+    ORDER BY FUNCTION('MONTH', e.createdAt)
+""")
+    List<Object[]> countNewEnrollmentsEachMonth(@Param("startDate") LocalDateTime startDate);
+
+
 }

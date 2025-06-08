@@ -108,11 +108,11 @@ public class AdminService {
 
         return secureUrl;
     }
-    public void blockUser(Long userId) {
+    public void toggleActiveUser(Long userId) {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND));
 
-        user.setIsEnabled(false);
+        user.setIsEnabled(!user.getIsEnabled());
         userRepository.save(user);
     }
 

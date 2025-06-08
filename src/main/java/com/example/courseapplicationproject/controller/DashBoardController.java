@@ -3,6 +3,8 @@ package com.example.courseapplicationproject.controller;
 import com.example.courseapplicationproject.dto.projection.PerformanceOverviewProjection;
 import com.example.courseapplicationproject.dto.projection.StudentEnrollmentProjection;
 import com.example.courseapplicationproject.dto.response.ApiResponse;
+import com.example.courseapplicationproject.dto.response.OverviewInstructorResponse;
+import com.example.courseapplicationproject.dto.response.StatisticDashboardResponse;
 import com.example.courseapplicationproject.service.DashBoardService;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
@@ -37,6 +39,23 @@ public class DashBoardController {
     ) {
         return ApiResponse.success(
                 dashBoardService.getTeacherRevenue(days, months, courseId),
+                "OK"
+        );
+    }
+    @GetMapping("/overview")
+    public ApiResponse<OverviewInstructorResponse> performanceOverview(
+            @RequestParam(value = "courseId", required = false) Long courseId
+    ) {
+        return ApiResponse.success(
+                dashBoardService.getOverviewInstructor(courseId),
+                "OK"
+        );
+    }
+    @GetMapping("/statistic-dashboard")
+    public ApiResponse<StatisticDashboardResponse> statisticOverview(
+    ) {
+        return ApiResponse.success(
+                dashBoardService.getStatisticDashboard(),
                 "OK"
         );
     }

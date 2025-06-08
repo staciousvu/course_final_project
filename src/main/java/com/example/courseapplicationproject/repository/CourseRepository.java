@@ -18,27 +18,55 @@ import com.example.courseapplicationproject.entity.Course;
 public interface CourseRepository extends JpaRepository<Course, Long> {
     // Truy vấn danh sách các Course theo keyword (trong title, subtitle và description)
     @Query("SELECT c FROM Course c WHERE " +
+            "c.isActive = 'ACTIVE' AND c.status = 'ACCEPTED' AND (" +
             "LOWER(c.title) LIKE LOWER(CONCAT('%', :keyword, '%')) OR " +
             "LOWER(c.subtitle) LIKE LOWER(CONCAT('%', :keyword, '%')) OR " +
-            "LOWER(c.description) LIKE LOWER(CONCAT('%', :keyword, '%'))")
+            "LOWER(c.description) LIKE LOWER(CONCAT('%', :keyword, '%')))")
     List<Course> findByKeyword(@Param("keyword") String keyword);
+
+    @Query("""
+    SELECT c FROM Course c
+    WHERE c.isActive = 'ACTIVE'
+    AND c.status = 'ACCEPTED'
+      AND (
+        LOWER(c.title) LIKE LOWER(CONCAT('%', :keyword, '%')) OR
+        LOWER(c.subtitle) LIKE LOWER(CONCAT('%', :keyword, '%')) OR
+        LOWER(c.description) LIKE LOWER(CONCAT('%', :keyword, '%'))
+      )
+      AND c.id NOT IN (
+        SELECT e.course.id FROM Enrollment e
+        WHERE e.user.id = :userId
+      )
+""")
+    List<Course> findByKeywordHomePage(@Param("keyword") String keyword, @Param("userId") Long userId);
+
+
 
     List<Course> findByAuthorIdAndStatus(Long authorId, Course.CourseStatus status);
 
     @Query("select count(*) from Course c where c.author.id = :authorId")
     int countCourseByByAuthor(@Param("authorId") Long authorId);
 
-    @Query("select c from Course c where c.author.id = :authorId")
+    @Query("""
+    select c from Course c where c.author.id = :authorId and c.status != 'REJECTED'
+    """)
     List<Course> findCourseByAuthorId(@Param("authorId") Long authorId);
 
     @Query("SELECT c FROM Course c " +
-            "WHERE c.author.id = :authorId " +
+            "WHERE c.author.id = :authorId and c.status != 'REJECTED' " +
             "AND (:keyword IS NULL OR LOWER(c.title) LIKE LOWER(CONCAT('%', :keyword, '%')) " +
             "OR LOWER(c.description) LIKE LOWER(CONCAT('%', :keyword, '%'))) " +
             "ORDER BY c.updatedAt DESC")
     Page<Course> findCourseByAuthorIdAndKeyword(@Param("authorId") Long authorId,
                                                 @Param("keyword") String keyword,
                                                 Pageable pageable);
+    @Query("SELECT c FROM Course c " +
+            "WHERE c.author.id = :authorId " +
+            "AND c.status = 'ACCEPTED' " +
+            "AND c.isActive = 'ACTIVE' " +
+            "ORDER BY c.updatedAt DESC")
+    List<Course> findCourseByAuthorIdStatusAccepted(@Param("authorId") Long authorId);
+
 
 
     int countCourseByCategory_Id(@Param("categoryId") Long categoryId);
@@ -92,6 +120,7 @@ public interface CourseRepository extends JpaRepository<Course, Long> {
     LEFT JOIN c.reviews r
     WHERE c.category.id = :categoryId
       AND c.status = 'ACCEPTED'
+      AND c.isActive = 'ACTIVE'
       AND c.id NOT IN (
           SELECT ec.course.id FROM Enrollment ec
           WHERE ec.user.id = :userId
@@ -133,6 +162,7 @@ public interface CourseRepository extends JpaRepository<Course, Long> {
         SELECT e.course.id FROM Enrollment e WHERE e.user.id = :userId
     )
     AND c.status = 'ACCEPTED'
+    AND c.isActive = 'ACTIVE'
     ORDER BY c.createdAt DESC
 """)
     List<Course> findCoursesRelatedByCategoryAndExcludeEnrolled(
@@ -153,6 +183,14 @@ public interface CourseRepository extends JpaRepository<Course, Long> {
     Page<Course> findCourseByStatus(@Param("status") Course.CourseStatus status,
                                     @Param("keyword") String keyword,
                                     Pageable pageable);
+    @Query("""
+    SELECT c FROM Course c
+    WHERE (:keyword IS NULL OR LOWER(c.title) LIKE LOWER(CONCAT('%', :keyword, '%'))
+           OR LOWER(c.description) LIKE LOWER(CONCAT('%', :keyword, '%')))
+      AND c.isActive = 'INACTIVE'
+""")
+    Page<Course> findCourseInactive(@Param("keyword") String keyword, Pageable pageable);
+
 
 
     Page<Course> findByStatusAndIsActive(Course.CourseStatus status, Course.IsActive isActive, Pageable pageable);

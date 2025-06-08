@@ -52,6 +52,8 @@ public class CourseSectionLectureResponse {
         String title;
         String type;
         String contentUrl;
+        boolean previewable;
+        String documentUrl;
         int displayOrder;
         boolean isCompleted;
         Double duration;

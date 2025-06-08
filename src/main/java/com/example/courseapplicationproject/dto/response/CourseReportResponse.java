@@ -26,6 +26,7 @@ public class CourseReportResponse {
     private String authorFullName;
 
     // Nội dung báo cáo
+    private String reportType;
     private String reason;
     private String description;
     private String imageUrl;

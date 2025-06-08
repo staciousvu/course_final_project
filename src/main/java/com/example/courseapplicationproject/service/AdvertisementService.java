@@ -47,6 +47,7 @@ public class AdvertisementService {
         Advertisement advertisement = Advertisement.builder()
                 .user(user)
                 .adPackage(adPackage)
+                .course(null)
                 .used(false)
                 .build();
 
@@ -54,6 +55,37 @@ public class AdvertisementService {
     }
 
     // 2. Người dùng áp dụng quảng cáo cho khóa học
+//    public void applyAdvertisement(Long advertisementId, Long courseId) {
+//        String email = SecurityContextHolder.getContext().getAuthentication().getName();
+//        User user = userRepository.findByEmail(email)
+//                .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND));
+//
+//        Advertisement advertisement = advertisementRepository.findById(advertisementId)
+//                .orElseThrow(() -> new AppException(ErrorCode.ADVERTISEMENT_NOT_FOUND));
+//
+//        if (advertisement.isUsed()) {
+//            throw new AppException(ErrorCode.BAD_REQUEST);
+//        }
+//
+//        if (!advertisement.getUser().getId().equals(user.getId())) {
+//            throw new AppException(ErrorCode.AUTHENTICATION_FAILED);
+//        }
+//
+//        Course course = courseRepository.findById(courseId)
+//                .orElseThrow(() -> new AppException(ErrorCode.COURSE_NOT_FOUND));
+//
+//        if (!course.getAuthor().getId().equals(user.getId())) {
+//            throw new AppException(ErrorCode.AUTHENTICATION_FAILED);
+//        }
+//
+//        AdsApply adsApply = AdsApply.builder()
+//                .advertisement(advertisement)
+//                .course(course)
+//                .status(AdsApply.ApplicationStatus.PENDING)
+//                .build();
+//
+//        adsApplyRepository.save(adsApply);
+//    }
     public void applyAdvertisement(Long advertisementId, Long courseId) {
         String email = SecurityContextHolder.getContext().getAuthentication().getName();
         User user = userRepository.findByEmail(email)
@@ -77,15 +109,16 @@ public class AdvertisementService {
             throw new AppException(ErrorCode.AUTHENTICATION_FAILED);
         }
 
-        AdsApply adsApply = AdsApply.builder()
-                .advertisement(advertisement)
-                .course(course)
-                .status(AdsApply.ApplicationStatus.PENDING)
-                .build();
+        LocalDateTime startDate = LocalDateTime.now();
+        LocalDateTime endDate = startDate.plusDays(advertisement.getAdPackage().getDurationDays());
 
-        adsApplyRepository.save(adsApply);
+        advertisement.setCourse(course);
+        advertisement.setUsed(true);
+        advertisement.setStartDate(startDate);
+        advertisement.setEndDate(endDate);
+
+        advertisementRepository.save(advertisement);
     }
-
     // 3. Admin duyệt quảng cáo
     public void approveApply(Long applyId) {
         AdsApply adsApply = adsApplyRepository.findById(applyId)
@@ -137,14 +170,7 @@ public class AdvertisementService {
         List<Advertisement> ads = advertisementRepository.findByUserIdAndUsedFalse(user.getId());
 
         return ads.stream()
-                .filter(ad -> {
-                    // Lọc bỏ quảng cáo đã có AdsApply (dù ở trạng thái nào)
-                    AdsApply apply = adsApplyRepository.findByAdvertisementId(ad.getId()).orElse(null);
-                    return apply == null || apply.getStatus() == AdsApply.ApplicationStatus.REJECTED;
-                })
                 .map(ad -> {
-                    AdsApply apply = adsApplyRepository.findByAdvertisementId(ad.getId()).orElse(null);
-
                     return AdvertisementResponse.builder()
                             .advertisementId(ad.getId())
                             .startDate(ad.getStartDate())
@@ -152,8 +178,8 @@ public class AdvertisementService {
                             .createdAt(ad.getCreatedAt())
                             .durationDays(ad.getAdPackage().getDurationDays())
                             .packageName(ad.getAdPackage().getName())
-                            .courseId(apply != null ? apply.getCourse().getId() : null)
-                            .courseTitle(apply != null ? apply.getCourse().getTitle() : null)
+                            .courseId(ad.getCourse() != null ? ad.getCourse().getId() : null)
+                            .courseTitle(ad.getCourse() != null ? ad.getCourse().getTitle() : null)
                             .build();
                 })
                 .collect(Collectors.toList());
@@ -170,7 +196,6 @@ public class AdvertisementService {
 
         return ads.stream()
                 .map(ad -> {
-                    AdsApply apply = adsApplyRepository.findByAdvertisementId(ad.getId()).orElse(null);
 
                     return AdvertisementResponse.builder()
                             .advertisementId(ad.getId())
@@ -179,8 +204,8 @@ public class AdvertisementService {
                             .createdAt(ad.getCreatedAt())
                             .durationDays(ad.getAdPackage().getDurationDays())
                             .packageName(ad.getAdPackage().getName())
-                            .courseId(apply != null ? apply.getCourse().getId() : null)
-                            .courseTitle(apply != null ? apply.getCourse().getTitle() : null)
+                            .courseId(ad.getCourse().getId())
+                            .courseTitle(ad.getCourse().getTitle())
                             .build();
                 })
                 .collect(Collectors.toList());
@@ -241,8 +266,8 @@ public class AdvertisementService {
 //                .collect(Collectors.toList());
 //    }
 public CourseResponse getRandomActiveCourseAdvertisement() {
-    List<AdsApply> activeAds = adsApplyRepository.findApprovedAndActiveAdvertisements();
-    List<Course> courses = activeAds.stream().map(AdsApply::getCourse).toList();
+    List<Advertisement> activeAds = advertisementRepository.findActiveAdvertisements();
+    List<Course> courses = activeAds.stream().map(Advertisement::getCourse).toList();
 
     if (courses.isEmpty()) {
         return null; // hoặc throw exception tùy bạn xử lý

@@ -66,7 +66,7 @@ public class ApplicationRunnerConfiguration implements CommandLineRunner {
                     .roles(roles)
                     .firstName("nguyen ba")
                     .lastName("vu")
-                    .isTeacherApproved(false)
+//                    .isTeacherApproved(false)
                     .build();
             userRepository.save(user);
             log.info("User saved vunguyen123@gmail.com");

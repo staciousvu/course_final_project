@@ -14,10 +14,7 @@ import lombok.experimental.FieldDefaults;
 @Builder
 @FieldDefaults(level = AccessLevel.PRIVATE)
 public class Permission extends AbstractEntity<Integer> {
-    //    @Id
-    //    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    //    @Column(name = "id")
-    //    Integer id;
+
 
     @Column(name = "permission_name", nullable = false, unique = true, length = 200)
     String permissionName;

@@ -17,7 +17,7 @@ public class QuestionAnswer extends AbstractEntity<Integer> {
     @JoinColumn(name = "question_id",nullable = false)
     QuizQuestion question;
 
-    @Column(name = "content")
+    @Column(columnDefinition = "LONGTEXT")
     String content;
 
     @Column(name = "is_correct")

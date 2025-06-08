@@ -1,6 +1,7 @@
 package com.example.courseapplicationproject.controller;
 
 import com.example.courseapplicationproject.dto.response.ApiResponse;
+import com.example.courseapplicationproject.dto.response.CartResponse;
 import com.example.courseapplicationproject.dto.response.FavoriteResponse;
 import com.example.courseapplicationproject.service.FavoriteService;
 import lombok.AccessLevel;
@@ -24,6 +25,13 @@ public class FavoriteController {
     ) {
         return ApiResponse.success(favoriteService.getFavoritesForUser(keyword, page, size), "Lấy danh sách khóa học yêu thích thành công");
     }
+    @GetMapping("/check/{courseId}")
+    public ApiResponse<Boolean> checkCourseInFavorite(
+            @PathVariable Long courseId
+    ) {
+        return ApiResponse.success(favoriteService.isCourseInFavorite(courseId), "Lấy danh sách khóa học yêu thích thành công");
+    }
+
 
     @PostMapping("/{courseId}")
     public ApiResponse<Void> addCourseToFavorites(@PathVariable Long courseId) {

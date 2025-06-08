@@ -46,15 +46,15 @@ public class InstructorService implements IInstructorService {
 
     @Override
     public void becomeInstructor() {
-        String email = SecurityContextHolder.getContext().getAuthentication().getName();
-        User user = userRepository.findByEmail(email).orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND));
-        if (!user.getIsTeacherApproved()) {
-            Role role = roleRepository
-                    .findByRoleName(Role.RoleType.INSTRUCTOR.toString())
-                    .orElseThrow(() -> new AppException(ErrorCode.ROLE_NOT_FOUND));
-            user.getRoles().add(role);
-            userRepository.save(user);
-        }
+//        String email = SecurityContextHolder.getContext().getAuthentication().getName();
+//        User user = userRepository.findByEmail(email).orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND));
+//        if (!user.getIsTeacherApproved()) {
+//            Role role = roleRepository
+//                    .findByRoleName(Role.RoleType.INSTRUCTOR.toString())
+//                    .orElseThrow(() -> new AppException(ErrorCode.ROLE_NOT_FOUND));
+//            user.getRoles().add(role);
+//            userRepository.save(user);
+//        }
     }
 
     @Override
@@ -183,6 +183,28 @@ public class InstructorService implements IInstructorService {
         Map<Long, Double> avgRatingForCourses = getAverageRatings(courseIds);
         return getCourseResponses(coursesPage, avgRatingForCourses);
     }
+    public List<CourseResponse> getCoursesForInstructorAdmin(Long instructorId){
+        User user = userRepository.findById(instructorId)
+                .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND));
+        List<Course> courses = courseRepository.findCourseByAuthorIdStatusAccepted(user.getId());
+        List<Long> courseIds =
+                courses.stream().map(Course::getId).toList();
+        Map<Long, Double> avgRatingForCourses = getAverageRatings(courseIds);
+        return courses.stream().map(course -> {
+            CourseResponse courseResponse = courseMapper.toCourseResponse(course);
+            courseResponse.setStatus(course.getStatus().name());
+            courseResponse.setLevel(course.getLevel().name());
+            courseResponse.setLabel(course.getLabel().name());
+            courseResponse.setCountRating(course.getCountRating());
+            courseResponse.setCountEnrolled(course.getCountEnrolled());
+            courseResponse.setAvgRating(avgRatingForCourses.getOrDefault(course.getId(), 0.0));
+            courseResponse.setAuthorName(
+                    course.getAuthor().getLastName() + " " + course.getAuthor().getFirstName());
+            courseResponse.setAuthorAvatar(course.getAuthor().getAvatar());
+//            courseResponse.setDiscount_price(voucherService.calculateDiscountedPrice(course.getPrice()));
+            return courseResponse;
+        }).toList();
+    }
     private Page<CourseResponse> getCourseResponses(
             Page<Course> coursesPage, Map<Long, Double> avgRatingForCourses) {
         return coursesPage.map(course -> {
@@ -190,6 +212,7 @@ public class InstructorService implements IInstructorService {
             courseResponse.setStatus(course.getStatus().name());
             courseResponse.setLevel(course.getLevel().name());
             courseResponse.setLabel(course.getLabel().name());
+            courseResponse.setIsActive(course.getIsActive().name());
             courseResponse.setCountRating(course.getCountRating());
             courseResponse.setCountEnrolled(course.getCountEnrolled());
             courseResponse.setAvgRating(avgRatingForCourses.getOrDefault(course.getId(), 0.0));

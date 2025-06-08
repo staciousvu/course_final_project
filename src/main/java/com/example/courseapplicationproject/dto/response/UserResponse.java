@@ -4,6 +4,7 @@ import lombok.*;
 import lombok.experimental.FieldDefaults;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 
 @Getter
 @Setter
@@ -23,6 +24,7 @@ public class UserResponse {
     String email;
     String country;
     String avatar;
+    LocalDateTime createdAt;
     String bio;
     Boolean isEnabled;
     Boolean isTeacherApproved;

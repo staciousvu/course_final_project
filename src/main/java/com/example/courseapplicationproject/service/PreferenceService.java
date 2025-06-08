@@ -45,7 +45,7 @@ public class PreferenceService {
         userPreferenceRootRepository.deleteByUserId(user.getId());
         userPreferenceRootRepository.save(new UserPreferenceRoot(rootCategory, user));
         // Xử lý Sub Categories
-        userPreferenceSubRepository.deleteAllByUserId(user.getId()); // Xóa subs cũ
+        userPreferenceSubRepository.deleteByUserId(user.getId()); // Xóa subs cũ
         if (!subCategoryIds.isEmpty()) {
             List<Category> subCategories = categoryRepository.findAllById(subCategoryIds);
             if (subCategories.size() != subCategoryIds.size()) {

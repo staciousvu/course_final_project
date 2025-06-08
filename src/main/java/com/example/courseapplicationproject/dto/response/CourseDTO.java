@@ -26,6 +26,7 @@ public class CourseDTO {
     String videoUrl;
     Double duration;
     Integer countEnrolled;
+    String isActive;
     Integer countRating;
     Double avgRating;
 }

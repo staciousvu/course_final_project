@@ -1,6 +1,7 @@
 package com.example.courseapplicationproject.dto.response;
 
 import java.math.BigDecimal;
+import java.time.LocalDateTime;
 import java.util.List;
 
 import com.example.courseapplicationproject.dto.request.CourseContentDTO;
@@ -19,7 +20,7 @@ public class CourseResponse {
     String description;
     BigDecimal price;
     BigDecimal discount_price;  
-    Integer duration;
+    Double duration;
     String language;
     String level;
     String thumbnail;
@@ -31,8 +32,13 @@ public class CourseResponse {
     String categoryName;
     Double avgRating;
     Integer countRating;
+    String isActive;
     String status;
     Integer countEnrolled;
+    int totalVideo;
     String label;
+    double progress;
+    LocalDateTime updatedAt;
+    LocalDateTime createdAt;
     List<CourseContentDTO> contents;
 }

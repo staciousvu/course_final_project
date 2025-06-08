@@ -15,4 +15,5 @@ public class ReportRequest {
     String reason;
     String description;
     MultipartFile image;
+    String reportType;
 }

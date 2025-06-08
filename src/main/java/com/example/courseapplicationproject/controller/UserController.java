@@ -30,6 +30,10 @@ public class UserController {
     public ApiResponse<UserResponse> getMyInfo() {
         return ApiResponse.success(userService.myInfo(), "Lấy thông tin thành công");
     }
+    @GetMapping("/info/{id}")
+    public ApiResponse<UserResponse> getInfoById(@PathVariable Long id) {
+        return ApiResponse.success(userService.getInfoById(id), "Lấy thông tin thành công");
+    }
 
     @PostMapping("/sent-otp")
     public ApiResponse<Void> sentOtpRegister(@RequestBody @Valid UserRequestCreation request)

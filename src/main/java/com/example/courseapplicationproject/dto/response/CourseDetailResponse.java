@@ -24,6 +24,7 @@ public class CourseDetailResponse {
     BigDecimal price;
     BigDecimal discount_price;
     Double duration;
+    int totalDocument;
     String language;
     String level;
     String thumbnail;

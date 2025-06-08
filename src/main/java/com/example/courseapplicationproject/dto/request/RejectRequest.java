@@ -1,7 +1,5 @@
 package com.example.courseapplicationproject.dto.request;
 
-import org.springframework.web.multipart.MultipartFile;
-
 import lombok.*;
 import lombok.experimental.FieldDefaults;
 
@@ -11,8 +9,6 @@ import lombok.experimental.FieldDefaults;
 @NoArgsConstructor
 @Builder
 @FieldDefaults(level = AccessLevel.PRIVATE)
-public class LectureUploadRequest {
-    String type;
-    MultipartFile file;
-    Long lectureId;
+public class RejectRequest {
+    String reason;
 }

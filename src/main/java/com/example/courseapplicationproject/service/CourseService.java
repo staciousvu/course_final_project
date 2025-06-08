@@ -6,9 +6,11 @@ import java.util.*;
 import java.util.concurrent.ExecutionException;
 import java.util.stream.Collectors;
 
+import com.example.courseapplicationproject.dto.event.NotificationEmailTemplateData;
 import com.example.courseapplicationproject.dto.request.*;
 import com.example.courseapplicationproject.dto.response.*;
 import com.example.courseapplicationproject.util.UserUtils;
+import jakarta.mail.MessagingException;
 import org.springframework.data.domain.*;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -32,6 +34,8 @@ import lombok.experimental.FieldDefaults;
 @FieldDefaults(makeFinal = true, level = AccessLevel.PRIVATE)
 @Service
 public class CourseService {
+    ProgressRepository progressRepository;
+    MailService mailService;
     CourseMapper courseMapper;
     CloudinaryService cloudinaryService;
     CourseRepository courseRepository;
@@ -43,8 +47,8 @@ public class CourseService {
     ActivityService activityService;
     CartRepository cartRepository;
     VoucherService voucherService;
-    ProgressRepository progressRepository;
     CourseContentService courseContentService;
+    LectureRepository lectureRepository;
     CourseRequirementService courseRequirementService;
     CourseTargetService courseTargetService;
     GoogleCloudService googleCloudService;
@@ -67,7 +71,7 @@ public class CourseService {
 
         if (isNullOrEmpty(course.getTitle())) return false;
         if (isNullOrEmpty(course.getDescription())) return false;
-        if (isNullOrEmpty(course.getPreviewVideo())) return false;
+//        if (isNullOrEmpty(course.getPreviewVideo())) return false;
         if (isNullOrEmpty(course.getLanguage())) return false;
 
         if (course.getPrice() == null || course.getPrice().compareTo(BigDecimal.ZERO) <= 0) return false;
@@ -100,21 +104,88 @@ public class CourseService {
         List<PaymentDetails> paymentDetails = payment.getPaymentDetails();
         List<Enrollment> enrollments = paymentDetails.stream()
                 .map(paymentDetail -> {
+                    Course course = paymentDetail.getCourse();
+                    course.setCountEnrolled(course.getCountEnrolled() + 1);
+                    courseRepository.save(course);
                     return Enrollment.builder()
-                            .course(paymentDetail.getCourse())
+                            .course(course)
                             .user(user)
                             .build();
                 })
-                .toList();
+                .collect(Collectors.toList());
         enrollRepository.saveAll(enrollments);
         cartRepository.deleteByUserId(user.getId());
 
     }
-    public void removeCourse_activeFalse(Long courseId){
+    @Transactional
+    public void enrollFreeCourse(PaymentRequest paymentRequest) {
+        String email = SecurityContextHolder.getContext().getAuthentication().getName();
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND));
+        List<Enrollment> enrollments = paymentRequest.getCourses().stream()
+                .map(courseId -> {
+                    Course course = courseRepository.findById(courseId)
+                            .orElseThrow(()-> new AppException(ErrorCode.COURSE_NOT_FOUND));
+                    course.setCountEnrolled(course.getCountEnrolled() + 1);
+                    courseRepository.save(course);
+                    return Enrollment.builder()
+                            .course(course)
+                            .user(user)
+                            .build();
+                })
+                .collect(Collectors.toList());
+        enrollRepository.saveAll(enrollments);
+    }
+    public void removeCourse_activeFalse(Long courseId,String reason) throws MessagingException {
         Course course = courseRepository.findById(courseId)
                 .orElseThrow(()-> new AppException(ErrorCode.COURSE_NOT_FOUND));
         course.setIsActive(Course.IsActive.INACTIVE);
         courseRepository.save(course);
+        // Lấy thông tin tác giả khóa học
+        User instructor = course.getAuthor(); // giả sử có getter
+        String courseName = course.getTitle();
+        String email = instructor.getEmail();
+
+        // Tạo dữ liệu email
+        NotificationEmailTemplateData emailData = NotificationEmailTemplateData.builder()
+                .messageTitle("Khóa học đã bị gỡ bỏ khỏi hệ thống")
+                .messageBody("Xin chào " + email + ", khóa học \"" + courseName + "\" của bạn đã bị gỡ bỏ khỏi nền tảng vì lý do vi phạm quy định hoặc theo yêu cầu của quản trị viên.")
+                .actionLabel("Liên hệ hỗ trợ")
+                .courseImage(course.getThumbnail())
+                .actionUrl("https://yourdomain.com/support") // Cập nhật link hỗ trợ nếu có
+                .companyName("Eduflow Platform")
+                .reason(reason)
+                .template("remove_course_template")
+                .recipient(email)
+                .build();
+
+        // Gửi email
+        mailService.remove_course(emailData);
+    }
+    public void openCourse_activeTrue(Long courseId) throws MessagingException {
+        Course course = courseRepository.findById(courseId)
+                .orElseThrow(()-> new AppException(ErrorCode.COURSE_NOT_FOUND));
+        course.setIsActive(Course.IsActive.ACTIVE);
+        courseRepository.save(course);
+        // Lấy thông tin tác giả khóa học
+        User instructor = course.getAuthor(); // giả sử có getter
+        String courseName = course.getTitle();
+        String email = instructor.getEmail();
+
+        // Tạo dữ liệu email
+        NotificationEmailTemplateData emailData = NotificationEmailTemplateData.builder()
+                .messageTitle("Khóa học đã được mở khóa ")
+                .messageBody("Xin chào " + email + ", khóa học \"" + courseName + "\" của bạn đã được mở khóa lại,vui lòng chú ý nội dung để không bị gỡ bỏ thêm lần nũa.")
+                .actionLabel("Liên hệ hỗ trợ")
+                .courseImage(course.getThumbnail())
+                .actionUrl("https://yourdomain.com/support") // Cập nhật link hỗ trợ nếu có
+                .companyName("Eduflow Platform")
+                .template("remove_course_template")
+                .recipient(email)
+                .build();
+
+        // Gửi email
+        mailService.remove_course(emailData);
     }
     public CourseDetailResponse getCourseDetail(Long courseId){
         Course course = courseRepository.findById(courseId)
@@ -128,22 +199,33 @@ public class CourseService {
                 .bio(user.getBio())
                 .expertise(user.getExpertise())
                 .build();
+
         Category topicCategory = course.getCategory();
-        Category subCategory = topicCategory.getParentCategory();
-        Category rootCategory = subCategory.getParentCategory();
         List<CourseDetailResponse.CategoryDTO> categoryDTOS = new ArrayList<>();
-        categoryDTOS.add(CourseDetailResponse.CategoryDTO.builder()
-                        .id(rootCategory.getId())
-                        .categoryName(rootCategory.getName())
-                .build());
-        categoryDTOS.add(CourseDetailResponse.CategoryDTO.builder()
-                .id(subCategory.getId())
-                .categoryName(subCategory.getName())
-                .build());
-        categoryDTOS.add(CourseDetailResponse.CategoryDTO.builder()
-                .id(topicCategory.getId())
-                .categoryName(topicCategory.getName())
-                .build());
+
+        if (topicCategory != null) {
+            Category subCategory = topicCategory.getParentCategory();
+            if (subCategory != null) {
+                Category rootCategory = subCategory.getParentCategory();
+                if (rootCategory != null) {
+                    categoryDTOS.add(CourseDetailResponse.CategoryDTO.builder()
+                            .id(rootCategory.getId())
+                            .categoryName(rootCategory.getName())
+                            .build());
+                }
+
+                categoryDTOS.add(CourseDetailResponse.CategoryDTO.builder()
+                        .id(subCategory.getId())
+                        .categoryName(subCategory.getName())
+                        .build());
+            }
+
+            categoryDTOS.add(CourseDetailResponse.CategoryDTO.builder()
+                    .id(topicCategory.getId())
+                    .categoryName(topicCategory.getName())
+                    .build());
+        }
+
         List<CourseContentDTO> courseContentDTOS = courseContentService.getAllContents(courseId);
         List<CourseRequirementDTO> courseRequirementDTOS = courseRequirementService.getAllRequirements(courseId);
         List<CourseTargetDTO> courseTargetDTOS = courseTargetService.getAllTargets(courseId);
@@ -153,8 +235,11 @@ public class CourseService {
                 .subtitle(course.getSubtitle())
                 .description(course.getDescription())
                 .price(course.getPrice())
-                .discount_price(voucherService.calculateDiscountedPrice(course.getPrice()))
-                .duration(course.getDuration())
+                .discount_price(course.getStatus() == Course.CourseStatus.ACCEPTED
+                        ? voucherService.calculateDiscountedPrice(course.getPrice())
+                        : null)
+                .duration(lectureRepository.getDurationForCourse(courseId))
+                .totalDocument(lectureRepository.getTotalDocumentForCourse(courseId))
                 .language(course.getLanguage())
                 .level(course.getLevel().name())
                 .thumbnail(course.getThumbnail())
@@ -212,6 +297,7 @@ public class CourseService {
                 .status(course.getStatus().name())
                 .previewUrl(course.getThumbnail())
                 .videoUrl(course.getPreviewVideo())
+                .isActive(course.getIsActive().name())
                 .avgRating(courseRepository.findAverageRatingByCourseId(courseId))
                 .duration(course.getDuration())
                 .countEnrolled(course.getCountEnrolled())
@@ -314,7 +400,8 @@ public class CourseService {
         // Xử lý tìm kiếm theo keyword qua ElasticSearch
         if (keyword != null && !keyword.isEmpty()) {
 //            List<String> courseIdsString = courseElasticService.fuzzySearch(keyword);
-            List<Course> coursessss = courseRepository.findByKeyword(keyword);
+//            List<Course> coursessss = courseRepository.findByKeyword(keyword);
+            List<Course> coursessss = courseRepository.findByKeywordHomePage(keyword,user.getId());
             if (user!=null){
                 UserSearchKeywordHistory userSearchKeywordHistory = UserSearchKeywordHistory.builder()
                         .keyword(keyword)
@@ -459,7 +546,10 @@ public class CourseService {
             courseResponse.setStatus(course.getStatus().name());
             courseResponse.setLevel(course.getLevel().name());
             courseResponse.setLabel(course.getLabel().name());
+            courseResponse.setCreatedAt(course.getCreatedAt());
+            courseResponse.setUpdatedAt(course.getUpdatedAt());
             courseResponse.setCountRating(course.getCountRating());
+            courseResponse.setTotalVideo(lectureRepository.getTotalVideoForCourse(course.getId()));
             courseResponse.setCountEnrolled(course.getCountEnrolled());
             courseResponse.setAvgRating(avgRatingForCourses.getOrDefault(course.getId(), 0.0));
             courseResponse.setAuthorName(
@@ -485,7 +575,36 @@ public class CourseService {
         Map<Long, Double> avgRatingForCourses = getAverageRatings(courseIds);
 
 
-        return getCourseResponses(coursesPage, avgRatingForCourses);
+        return coursesPage.map(course -> {
+            long totalLectures = course.getSections().stream()
+                    .mapToLong(section -> section.getLectures().size())
+                    .sum();
+            long completedLectures = progressRepository.countByUserIdAndCourseIdAndIsCompletedTrue(user.getId(), course.getId());
+            double progress=0.0;
+            if (totalLectures == 0){
+                progress=0.0;
+            }else{
+                progress=(double) completedLectures / totalLectures * 100;
+            }
+            CourseResponse courseResponse = courseMapper.toCourseResponse(course);
+            courseResponse.setStatus(course.getStatus().name());
+            courseResponse.setLevel(course.getLevel().name());
+            courseResponse.setLabel(course.getLabel().name());
+            courseResponse.setCountRating(course.getCountRating());
+            courseResponse.setProgress(progress);
+            courseResponse.setCountEnrolled(course.getCountEnrolled());
+            courseResponse.setAvgRating(avgRatingForCourses.getOrDefault(course.getId(), 0.0));
+            courseResponse.setAuthorName(
+                    course.getAuthor().getFirstName() + " " + course.getAuthor().getLastName());
+            courseResponse.setAuthorEmail(course.getAuthor().getEmail());
+            courseResponse.setAuthorAvatar(course.getAuthor().getAvatar());
+            if (course.getStatus().equals(Course.CourseStatus.ACCEPTED)) {
+                courseResponse.setDiscount_price(voucherService.calculateDiscountedPrice(course.getPrice()));
+            }else {
+                courseResponse.setDiscount_price(BigDecimal.ZERO);
+            }
+            return courseResponse;
+        });
     }
 
     public List<CourseResponse> myCoursesInstructor() {
@@ -529,7 +648,7 @@ public class CourseService {
         courseRepository.save(course);
     }
 
-    public void acceptCourse(Long courseId) {
+    public void acceptCourse(Long courseId) throws MessagingException {
         Course course =
                 courseRepository.findById(courseId).orElseThrow(() -> new AppException(ErrorCode.COURSE_NOT_FOUND));
 
@@ -539,9 +658,26 @@ public class CourseService {
 
         course.setStatus(Course.CourseStatus.ACCEPTED);
         courseRepository.save(course);
+        User instructor = course.getAuthor(); // giả sử có getter
+        String courseName = course.getTitle();
+        String email = instructor.getEmail();
+
+        // Tạo dữ liệu email
+        NotificationEmailTemplateData emailData = NotificationEmailTemplateData.builder()
+                .messageTitle("Khóa học đã được phê duyệt")
+                .messageBody("Chúc mừng " + email + "! Khóa học \"" + courseName + "\" của bạn đã được phê duyệt.")
+                .actionLabel("Xem khóa học")
+                .actionUrl("https://yourdomain.com/instructor/courses") // Thay URL thực tế
+                .companyName("Eduflow Platform")
+                .courseImage(course.getThumbnail())
+                .recipient(email)
+                .build();
+
+        // Gửi email
+        mailService.notification(emailData);
     }
 
-    public void rejectCourse(Long courseId) {
+    public void rejectCourse(Long courseId,String reason) throws MessagingException {
         Course course =
                 courseRepository.findById(courseId).orElseThrow(() -> new AppException(ErrorCode.COURSE_NOT_FOUND));
 
@@ -552,6 +688,25 @@ public class CourseService {
         course.setStatus(Course.CourseStatus.REJECTED);
 
         courseRepository.save(course);
+        User instructor = course.getAuthor(); // giả sử có getter
+        String courseName = course.getTitle();
+        String email = instructor.getEmail();
+
+        // Tạo dữ liệu email
+        NotificationEmailTemplateData emailData = NotificationEmailTemplateData.builder()
+                .messageTitle("Khóa học đã bị từ chối")
+                .messageBody("Xin chào " + email + ", rất tiếc! Khóa học \"" + courseName + "\" của bạn đã bị từ chối. Vui lòng kiểm tra lại nội dung khóa học và gửi lại.")
+                .actionLabel("Chỉnh sửa khóa học")
+                .actionUrl("https://yourdomain.com/instructor/courses") // Thay bằng URL thực tế
+                .companyName("Eduflow Platform")
+                .courseImage(course.getThumbnail())
+                .reason(reason)
+                .template("remove_course_template")
+                .recipient(email)
+                .build();
+
+        // Gửi email
+        mailService.remove_course(emailData);
     }
 
     public void deleteCourse(Long courseId) {
@@ -603,7 +758,7 @@ public class CourseService {
                                                 .title(lecture.getTitle())
                                                 .displayOrder(lecture.getDisplayOrder())
                                                 .isCompleted(false)
-                                                .type(lecture.getType() != null ? lecture.getType().name() : null)
+//                                                .type(lecture.getType() != null ? lecture.getType().name() : null)
                                                 .contentUrl( null)
                                                 .duration(lecture.getDuration() != null ? lecture.getDuration() : 0)
                                                 .build())
@@ -653,8 +808,9 @@ public class CourseService {
                                                 .title(lecture.getTitle())
                                                 .displayOrder(lecture.getDisplayOrder())
                                                 .isCompleted(progressMap.getOrDefault(lecture.getId(), false))
-                                                .type(lecture.getType() != null ? lecture.getType().name() : null)
-                                                .contentUrl((isEnrolled || isAdmin || isAuthor) ? lecture.getContentUrl() : null)
+                                                .previewable(lecture.isPreviewable())
+                                                .contentUrl((isEnrolled || isAdmin || isAuthor || lecture.isPreviewable()) ? lecture.getContentUrl() : null)
+                                                .documentUrl((isEnrolled || isAdmin || isAuthor) ? lecture.getDocumentUrl() : null)
                                                 .duration(lecture.getDuration() != null ? lecture.getDuration() : 0)
                                                 .build())
                                         .collect(Collectors.toList()))
@@ -666,6 +822,14 @@ public class CourseService {
         Sort sort = Sort.by(Sort.Direction.DESC,"createdAt");
         PageRequest pageRequest = PageRequest.of(page,size,sort);
         Page<Course> courses = courseRepository.findCourseByStatus(status,keyword,pageRequest);
+        List<Long> courseIds = courses.stream().map(Course::getId).toList();
+        Map<Long, Double> avgRatingForCourses = getAverageRatings(courseIds);
+        return getCourseResponses(courses, avgRatingForCourses);
+    }
+    public Page<CourseResponse> getAllCourseInactive(String keyword,Integer page,Integer size){
+        Sort sort = Sort.by(Sort.Direction.DESC,"createdAt");
+        PageRequest pageRequest = PageRequest.of(page,size,sort);
+        Page<Course> courses = courseRepository.findCourseInactive(keyword,pageRequest);
         List<Long> courseIds = courses.stream().map(Course::getId).toList();
         Map<Long, Double> avgRatingForCourses = getAverageRatings(courseIds);
         return getCourseResponses(courses, avgRatingForCourses);
@@ -752,6 +916,7 @@ public class CourseService {
                 orders.add(new Sort.Order(direction, field));
             }
         }
+        System.out.println("Sorting orders: " + orders);
 
         Pageable pageable = PageRequest.of(page, size, Sort.by(orders));
         Page<Course> coursePage = courseRepository.findByStatusAndIsActive(Course.CourseStatus.ACCEPTED, Course.IsActive.ACTIVE, pageable);
@@ -768,6 +933,7 @@ public class CourseService {
                 .map(course -> {
                     CourseResponse courseResponse = courseMapper.toCourseResponse(course);
                     courseResponse.setLevel(course.getLevel().name());
+                    courseResponse.setDuration(lectureRepository.getDurationForCourse(course.getId()));
                     courseResponse.setLabel(course.getLabel().name());
                     courseResponse.setCountEnrolled(course.getCountEnrolled() != null ? course.getCountEnrolled() : 0);
                     courseResponse.setStatus(course.getStatus().name());
